@@ -1,0 +1,204 @@
+unit Info_u;
+
+interface
+
+uses
+  Classes, Windows, ComCtrls, DesignIntf, TypInfo, DesignEditors, Graphics, Controls, SysUtils,
+  System.Generics.Collections, StdCtrls, ExtCtrls, Forms;
+
+const
+  TLVersion = 1;
+
+type
+  TListCollection = class(TList)
+  public
+    procedure Clear; override;
+  end;
+  TUndoProp = class(TObject)
+  public
+    constructor Create(AName: String);
+    destructor Destroy; override;
+    procedure SetData(AData: Pointer; ACount: Integer);
+    function GetData(AData: Pointer): Integer;
+    procedure SetString(Value: WideString);
+    function GetString: WideString;
+    procedure SetSingle(Value: Single);
+    function GetSingle: Single;
+    property Name: String read FName;
+    property Data: TBytes read FData;
+    property Value: WideString read GetString;
+    property Count: Integer read FCount write SetCount;
+  end;
+  TUndoProps = TObjectList<TUndoProp>;
+  TModalResultEvent = function(Sender: TObject): TModalResult of Object;
+  TCategory = class(TObject)
+  protected
+    FPropList: TStringList;
+  public
+    Node  : TTreeNode;
+    Rpt   : TScrollingWinControl;
+    IsSkip: Boolean;
+    IsSort: Boolean;
+    constructor Create(AName: String; AExpanded: Boolean);
+    destructor Destroy; override;
+    procedure AddProperty(AName: String);
+    function InCategory(AName: String): Boolean;
+    procedure Write(Writer: TWriter);
+    function Read(Reader: TReader): Boolean;
+    procedure PostRead;
+    property Name: String read FName;
+    property Expanded: Boolean read FExpanded;
+    property PropList: TStringList read FPropList;
+  end;
+  TCategoryList = class(TListCollection)
+  public
+    function IsCategory(AName: String): Boolean;
+    property Category[I: Integer]: TCategory read GetCategory;
+  end;
+  TCategoryProperty = class(TPropertyEditor)
+  public
+    procedure SetPropEntry(Index: Integer; AInstance: TPersistent;
+      APropInfo: PPropInfo); override;
+    function GetAttributes: TPropertyAttributes; override;
+    function GetName: string; override;
+    function GetValue: string; override;
+    function GetValueW: WideString; override;
+    procedure SetValue(const Value: string); overload; override;
+    procedure SetValue(const Value: WideString); overload; override;
+    procedure Edit; override;
+    property OnModalResultEvent: TModalResultEvent read FModalResultEvent write FModalResultEvent;
+  end;
+  TFloatArrayProperty = class(TPropertyEditor)
+    function GetAttributes: TPropertyAttributes; override;
+    procedure Edit; override;
+    function GetValue: string; override;
+    procedure SetValue(const Value: string); override;
+  end;
+  TInfoPersistent = class(TPersistent)
+  protected
+    FHelpContext: THelpContext;
+    FUndoProps  : TUndoProps;
+    FUndoList   : TStringList;
+    class procedure BuildList(List: TStringList); virtual;
+    class procedure BuildInfoList(List: TStringList); virtual;
+    class procedure BuildCategory(List: TCategoryList); virtual;
+    class procedure BuildOrder(List: TStringList); virtual;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter; FS: TStream); virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); overload; virtual;
+    class procedure Read(P: TInfoPersistent; Reader: TReader; Ver: Integer; fm: Single = 0.0); overload; virtual;
+    procedure PostRead; virtual;
+    procedure PostCopy; virtual;
+    function GetFloatArrayId(AName: String; var R, C: Integer): Integer; virtual;
+    function GetFloatArray(AId: Integer; var R, C: Integer): Pointer; virtual;
+    procedure SetFloatArray(AId, R, C: Integer; P: Pointer); virtual;
+    procedure WriteUndo(Writer: TWriter); virtual;
+    procedure ReadUndo(Reader: TReader); virtual;
+    procedure AssignIP(Source: TInfoPersistent); virtual;
+    class function GetInfoText(Name: String): String; virtual;
+    procedure BuildChildList(ListView: TListView); virtual;
+    function GetChild(ParentName, Name: String; Level: Integer): TPersistent; virtual;
+    class function CategoryList: TCategoryList; virtual;
+    class function OrderList: TStringList; virtual;
+    function FindUndoProp(Name: String): TUndoProp;
+    function FindUndoPropV(Name, Value: String): TUndoProp;
+    function FindUndoProps(Name: String; List: TUndoProps): Integer;
+    function SetEditToString(Edit: TEdit; OldV: WideString; var V: WideString): Boolean;
+    function SetEditToSingle(Edit: TEdit; OldV: Single; var V: Single): Boolean;
+    function SetEditToInteger(Edit: TEdit; OldV: Integer; var V: Integer): Boolean;
+    function SetColorBoxToColor(ColorBox: TCustomComboBox; OldV: TColor; var V: TColor): Boolean;
+    function SetComboBoxToInteger(ComboBox: TComboBox; OldV: Integer; var V: Integer): Boolean;
+    function SetRadioGroupToInteger(RadioGroup: TRadioGroup; OldV: Integer; var V: Integer): Boolean;
+    function GetEditProc(ACategoryName: String): TModalResultEvent; virtual;
+    procedure CategoryPostEdit; virtual;
+    procedure PropTreeSetValue(Sender: TObject; PropertyEditor: IProperty; Level: Integer); virtual;
+    procedure FontProperties(Sender: TObject; PE: IProperty; Level: Integer; Name: String;
+      var FontColor: TColor; var FontStyle: TFontStyles; var NewName: String); virtual;
+    property HelpContext: THelpContext read FHelpContext write FHelpContext;
+    property PublicUndoList: TUndoProps read FUndoProps;
+    property UndoList: TStringList read FUndoList;
+  end;
+  TInfoComponent = class(TComponent)
+  protected
+    FHelpContext: THelpContext;
+    FUndoProps  : TUndoProps;
+    FUndoList   : TStringList;
+    function GetIsEvents: Boolean; virtual;
+    class procedure BuildList(List: TStringList); virtual;
+    class procedure BuildInfoList(List: TStringList); virtual;
+    class procedure BuildCategory(List: TCategoryList); virtual;
+    class procedure BuildOrder(List: TStringList); virtual;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure WriteUndo(Writer: TWriter); virtual;
+    procedure ReadUndo(Reader: TReader); virtual;
+    class function GetInfoText(Name: String): String; virtual;
+    procedure BuildChildList(ListView: TListView); virtual;
+    function GetChild(ParentName, Name: String; Level: Integer): TPersistent; virtual;
+    class function CategoryList: TCategoryList; virtual;
+    class function OrderList: TStringList; virtual;
+    function FindUndoProp(Name: String): TUndoProp;
+    function FindUndoPropV(Name, Value: String): TUndoProp;
+    function FindUndoProps(Name: String; List: TUndoProps): Integer;
+    function SetEditToString(Edit: TEdit; OldV: WideString; var V: WideString): Boolean;
+    function SetEditToSingle(Edit: TEdit; OldV: Single; var V: Single): Boolean;
+    function SetEditToInteger(Edit: TEdit; OldV: Integer; var V: Integer): Boolean;
+    function SetColorBoxToColor(ColorBox: TCustomComboBox; OldV: TColor; var V: TColor): Boolean;
+    function SetComboBoxToInteger(ComboBox: TComboBox; OldV: Integer; var V: Integer): Boolean;
+    function SetRadioGroupToInteger(RadioGroup: TRadioGroup; OldV: Integer; var V: Integer): Boolean;
+    procedure PropTreeSetValue(Sender: TObject; PropertyEditor: IProperty; Level: Integer); virtual;
+    procedure FontProperties(Sender: TObject; PE: IProperty; Level: Integer; Name: String;
+      var FontColor: TColor; var FontStyle: TFontStyles; var NewName: String); virtual;
+    property HelpContext: THelpContext read FHelpContext write FHelpContext;
+    property IsEvents: Boolean read GetIsEvents;
+    property PublicUndoList: TUndoProps read FUndoProps;
+    property UndoList: TStringList read FUndoList;
+  end;
+  TInfoCustomControl = class(TCustomControl)
+  protected
+    FHelpContext: THelpContext;
+    FUndoProps  : TUndoProps;
+    FUndoList   : TStringList;
+    function GetIsEvents: Boolean; virtual;
+    class procedure BuildList(List: TStringList); virtual;
+    class procedure BuildInfoList(List: TStringList); virtual;
+    class procedure BuildCategory(List: TCategoryList); virtual;
+    class procedure BuildOrder(List: TStringList); virtual;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure WriteUndo(Writer: TWriter); virtual;
+    procedure ReadUndo(Reader: TReader); virtual;
+    class function GetInfoText(Name: String): String; virtual;
+    procedure BuildChildList(ListView: TListView); virtual;
+    function GetChild(ParentName, Name: String; Level: Integer): TPersistent; virtual;
+    class function CategoryList: TCategoryList; virtual;
+    class function OrderList: TStringList; virtual;
+    function FindUndoProp(Name: String): TUndoProp;
+    function FindUndoPropV(Name, Value: String): TUndoProp;
+    function FindUndoProps(Name: String; List: TUndoProps): Integer;
+    function SetEditToString(Edit: TEdit; OldV: WideString; var V: WideString): Boolean;
+    function SetEditToSingle(Edit: TEdit; OldV: Single; var V: Single): Boolean;
+    function SetEditToInteger(Edit: TEdit; OldV: Integer; var V: Integer): Boolean;
+    function SetColorBoxToColor(ColorBox: TCustomComboBox; OldV: TColor; var V: TColor): Boolean;
+    function SetComboBoxToInteger(ComboBox: TComboBox; OldV: Integer; var V: Integer): Boolean;
+    function SetRadioGroupToInteger(RadioGroup: TRadioGroup; OldV: Integer; var V: Integer): Boolean;
+    procedure PropTreeSetValue(Sender: TObject; PropertyEditor: IProperty; Level: Integer); virtual;
+    procedure FontProperties(Sender: TObject; PE: IProperty; Level: Integer; Name: String;
+      var FontColor: TColor; var FontStyle: TFontStyles; var NewName: String); virtual;
+    property HelpContext: THelpContext read FHelpContext write FHelpContext;
+    property IsEvents: Boolean read GetIsEvents;
+    property PublicUndoList: TUndoProps read FUndoProps;
+    property UndoList: TStringList read FUndoList;
+  end;
+
+var
+  InfoList     : TStringList;
+  CatPropInfo  : TPropInfo;
+  CatTypeInfo  : TTypeInfo;
+  CatTypeData  : TTypeData;
+  CatP_TypeInfo: PTypeInfo;
+

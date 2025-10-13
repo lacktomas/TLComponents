@@ -1,0 +1,26 @@
+unit PropDsgnForm_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, TypInfo,
+  Dialogs, DsgnForms_u, ComCtrls, PropTreeView_u, DesignIntf,  TLComponentsDM;
+
+type
+  TPropDsgnForm = class(TDsgnForm)
+  protected
+    { Protected declarations }
+    Editors: TInterfaceList;
+    procedure GetEditors(const Prop: IProperty);
+    procedure AddProperties(ParentNode: TTreeNode; PE: IProperty); virtual;
+    function GetPropTreeParent: TWinControl; virtual;
+    procedure FontProperties(Sender: TObject; PE: IProperty; Level: Integer; Name: String;
+      var FontColor: TColor; var FontStyle: TFontStyles; var NewName: String); virtual;
+    procedure PropViewSelectNode(Sender: TObject; Node: TTreeNode); virtual;
+    procedure PropTreeSetValue(Sender: TObject; PropertyEditor: IProperty; Level: Integer); virtual;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure UpDatePropView; virtual;
+  end;

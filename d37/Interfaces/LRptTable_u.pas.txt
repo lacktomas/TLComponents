@@ -1,0 +1,55 @@
+unit LRptTable_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls, DsgnForms_u,
+  LRpt_u, DesignIntf, DesignEditors, System.Types, System.UITypes, Info_u, TableColForm_u, Variables_u;
+
+type
+  TGetRowCount = procedure(Sender: TObject; var RowCount: Integer) of Object;
+  TGetCellValue = procedure(Sender: TObject; Col, Row: Integer; Font: TFont; var BkColor: TColor; var Value: String) of Object;
+  TLRptTable = class(TLRptComponent)
+  protected
+    { Protected declarations }
+    EC: Integer;
+    procedure Modify(Sender: TObject); virtual;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter); override;
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+    procedure MouseMove(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+  published
+    property Width;
+    property Height;
+    property Columns: TTableColCollection read FTableColCollection write SetTableColCollection;
+    property FramePen: TPen read FFramePen write SetFramePen;
+    property Caption: String read FCaption write SetCaption;
+    property CaptionColor: TColor read FCaptionColor write SetCaptionColor;
+    property CaptionHeight: Single read FCH write SetCH;
+    property CaptionFont: TFont read FCaptionFont write SetCaptionFont;
+    property CaptionAlignment: TAlignment read FCaptionAlignment write SetCaptionAlignment;
+    property HeaderColor: TColor read FHeaderColor write SetHeaderColor;
+    property HeaderHeight: Single read FHH write SetHH;
+    property HeaderFont: TFont read FHeaderFont write SetHeaderFont;
+    property Alignment: TAlignment read FAlignment write SetAlignment;
+    property Font: TFont read FFont write SetFont;
+    property LineHeight: Single read FLH write SetLH;
+    property LinesCount: Integer read FLCount write SetLCount;
+    property OnGetRowCount: TGetRowCount read FOnGetRowCount write FOnGetRowCount;
+    property OnGetCellValue: TGetCellValue read FOnGetCellValue write FOnGetCellValue;
+  end;
+  TColumnsEditor = class(TDefaultEditor)
+  protected
+    procedure EditProperty(const Prop: IProperty; var Continue: Boolean); override;
+  public
+    procedure ExecuteVerb(Index: Integer); override;
+    function  GetVerb(Index: Integer): string; override;
+    function  GetVerbCount: Integer; override;
+  end;

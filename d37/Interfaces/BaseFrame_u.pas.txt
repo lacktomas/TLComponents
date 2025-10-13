@@ -1,0 +1,43 @@
+unit BaseFrame_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, TypInfo, DesignIntf, System.Generics.Collections, PropTreeView_u, FrmDsgn_u;
+
+type
+  TBaseFrame = class(TFrame, IDesignNotification)
+  protected
+    FPropView: TPropertyTreeView;
+    procedure SetEditObject(AnObject: TObject); overload; virtual;
+    procedure SetEditObject(AnObject: TObjectList<TObject>); overload; virtual;
+    procedure ItemDeleted(const ADesigner: IDesigner; Item: TPersistent); virtual;
+    procedure ItemInserted(const ADesigner: IDesigner; Item: TPersistent); virtual;
+    procedure SelectionChanged(const ADesigner: IDesigner; const ASelection: IDesignerSelections); virtual;
+    procedure DesignerOpened(const Designer: IDesigner; AResurrecting: Boolean); virtual;
+    procedure DesignerClosed(const Designer: IDesigner; AGoingDormant: Boolean); virtual;
+    procedure ItemsModified(const Designer: IDesigner); virtual;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure DoShow; virtual;
+    procedure DoPageChange; virtual;
+    procedure DoApplicationDeactivate; virtual;
+    procedure CloseQuery(Sender: TObject; var CanClose: Boolean); virtual;
+    function GetObject(const Name: string): TPersistent; virtual;
+    function GetObjectName(Instance: TPersistent): string; virtual;
+    procedure GetObjectNames(TypeData: PTypeData; Proc: TGetStrProc); virtual;
+    function GetComponent(const Name: string): TComponent; virtual;
+    function GetComponentName(Instance: TComponent): string; virtual;
+    procedure GetComponentNames(TypeData: PTypeData; Proc: TGetStrProc); virtual;
+    procedure UpDatePropView(IsExternal: Boolean); virtual;
+    function ActualHelpContext: THelpContext; virtual;
+    property FrmDsgn: TFrmDsgn read FFrmDsgn;
+    property IFrmDsgn: IDesigner read FIFrmDsgn write FIFrmDsgn;
+    property OwnerObject: TPersistent read FOwnerObject write FOwnerObject;
+    property EditObject: TObject read FEditObject write SetEditObject;
+    property EditList: TObjectList<TObject> read FEditList write SetEditObject;
+    property PropertyTreeView: TPropertyTreeView read FPropView;
+  end;

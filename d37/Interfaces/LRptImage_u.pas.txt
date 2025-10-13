@@ -1,0 +1,28 @@
+unit LRptImage_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls,
+  LRpt_u, DesignIntf;
+
+type
+  TLRptImage = class(TLRptComponent)
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+    procedure PaintToRect(Canvas: TCanvas; R: TRect);
+    procedure Write(Writer: TWriter); override;
+    procedure WritePicture(FS: TStream);
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure ReadPicture(FS: TStream);
+  published
+    { Published declarations }
+    property Stretch: Boolean read FStretch write SetStretch default False;
+    property Picture: TPicture read FPicture write SetPicture;
+    property Width;
+    property Height;
+  end;

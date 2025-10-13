@@ -1,0 +1,136 @@
+unit CollectionForm_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, DesignIntf, ComCtrls, Buttons, PropDsgnForm_u,
+  ImgList, ToolWin, DsgnForms_u, DesignEditors, PropTreeView_u, TLComponentsDM,
+  BaseFrame_u, Info_u, Vcl.Menus, LColorListView_u, LicenceComponent_u;
+
+type
+  TCollectionProperty = class(TPropertyEditor)
+  public
+    { Public declarations }
+    procedure Edit; override;
+    function GetValue: string; override;
+    function GetAttributes: TPropertyAttributes; override;
+  end;
+  TInfoCollectionItem = class(TCollectionItem)
+  protected
+    FUndoProps: TUndoProps;
+    FUndoList : TStringList;
+    class procedure BuildCategory(List: TCategoryList); virtual;
+    class procedure BuildOrder(List: TStringList); virtual;
+  public
+    constructor Create(Collection: TCollection); override;
+    destructor Destroy; override;
+    procedure WriteUndo(Writer: TWriter); virtual;
+    procedure ReadUndo(Reader: TReader); virtual;
+    class procedure ReadUndoNI(Reader: TReader); virtual;
+    procedure RemoveNotification(AnObject: TPersistent); virtual;
+    procedure Write(Writer: TWriter; FS: TStream); virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); overload; virtual;
+    procedure PostRead(Frame: TBaseFrame); virtual;
+    class function CategoryList: TCategoryList; virtual;
+    class function OrderList: TStringList; virtual;
+    property PublicUndoList: TUndoProps read FUndoProps;
+    property UndoList: TStringList read FUndoList;
+  end;
+  TInfoCollectionItemClass = class of TInfoCollectionItem;
+  TInfoCollection = class(TOwnedCollection)
+  protected
+    FOnModify: TNotifyEvent;
+    function GetFormClass: TFormClass; virtual;
+    class procedure BuildList(List: TStringList); virtual;
+  public
+    IsNoEdit: Boolean;
+    constructor Create(AOwner: TPersistent; ItemClass: TInfoCollectionItemClass);
+    procedure Write(Writer: TWriter; FS: TStream); virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); virtual;
+    procedure PostRead(Frame: TBaseFrame); virtual;
+    procedure DoModify;
+    procedure WriteUndo(Writer: TWriter); virtual;
+    procedure ReadUndo(Reader: TReader); virtual;
+    class function GetInfoText(Name: String): String; virtual;
+    property OnModify: TNotifyEvent read FOnModify write FOnModify;
+  end;
+  TCollectionForm = class(TPropDsgnForm)
+    ListView1: TLColorListView;
+    ToolBar1: TToolBar;
+    AddBtn: TToolButton;
+    DeleteBtn: TToolButton;
+    ToolButton3: TToolButton;
+    MoveUpBtn: TToolButton;
+    MoveDownBtn: TToolButton;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    CloseBtn: TBitBtn;
+    Splitter1: TSplitter;
+    InfoBox: TPaintBox;
+    Panel3: TPanel;
+    CopyBtn: TToolButton;
+    CopyPopupMenu: TPopupMenu;
+    AlleKopie1: TMenuItem;
+    Paste1: TMenuItem;
+    procedure AddBtnClick(Sender: TObject);
+    procedure DeleteBtnClick(Sender: TObject);
+    procedure MoveUpBtnClick(Sender: TObject);
+    procedure MoveDownBtnClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure ListView1SelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure ListView1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ListView1StartDrag(Sender: TObject;
+      var DragObject: TDragObject);
+    procedure ListView1DragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure ListView1DragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure ListView1KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormCreate(Sender: TObject);
+    procedure ListView1ColumnClick(Sender: TObject; Column: TListColumn);
+    procedure ListView1Compare(Sender: TObject; Item1, Item2: TListItem;
+      Data: Integer; var Compare: Integer);
+    procedure InfoBoxPaint(Sender: TObject);
+    procedure CopyBtnClick(Sender: TObject);
+    procedure AlleKopie1Click(Sender: TObject);
+    procedure CopyPopupMenuPopup(Sender: TObject);
+    procedure Paste1Click(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  protected
+    { Protected declarations }
+    FCollection   : TInfoCollection;
+    EditCollection: TInfoCollection;
+    ShortIndex    : Integer;
+    InfoName      : String;
+    InfoText      : String;
+    LockedLW      : Boolean;
+    procedure SetEditObject(AnObject: TObject); override;
+    procedure BuildTree; virtual;
+    procedure ModifyTree(CollItem: TCollectionItem); virtual;
+    procedure AddTreeNode(CollItem: TCollectionItem); virtual;
+    procedure DelTreeNode(CollItem: TCollectionItem); virtual;
+    procedure PostDelTreeNode; virtual;
+    procedure MoveUpTreeNode(CollItem: TCollectionItem); virtual;
+    procedure MoveDownTreeNode(CollItem: TCollectionItem); virtual;
+    procedure MoveTreeNode(DestItem, CollItem: TCollectionItem); virtual;
+    function DefaultShortIndex: Integer; virtual;
+    function GetPropTreeParent: TWinControl; override;
+    procedure PropViewSelectNode(Sender: TObject; Node: TTreeNode); override;
+    procedure PropTreeSetValue(Sender: TObject; PropertyEditor: IProperty; Level: Integer); override;
+    procedure EnableItemBtns(IsEnable: Boolean); virtual;
+    procedure ItemsModified(const Designer: IDesigner); override;
+  public
+    { Public declarations }
+    PropName   : String;
+    IsDesigning: Boolean;
+    function GetFrame: TBaseFrame;
+    procedure RefreshCaption; override;
+    procedure BuildItem(Item: TListItem; CollItem: TCollectionItem); virtual;
+    procedure UpDatePropView; override;
+    procedure Modify(AnObject: TPersistent); override;
+    procedure UpdateForm; override;
+    property Collection: TInfoCollection read FCollection;
+  end;

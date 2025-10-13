@@ -1,0 +1,344 @@
+unit LRptGraph_u;
+
+interface
+
+uses
+  SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms, Dialogs, LRpt_u, Info_u,
+  stdCtrls, ExtCtrls, System.Types, System.UITypes, DesignIntf, DesignEditors, CollectionForm_u,
+  Variables_u;
+
+type
+  TRptGraphPaintEvent = procedure(Sender: TObject; Page, DC: Integer;
+    var PaintInfo: TPaintStruct; PosX, PosY: Integer; MX, MY: Double) of Object;
+  TRptShapePaintEvent = procedure(Sender: TObject; Canvas: TCanvas; Rc: TRect;
+    var PaintInfo: TPaintStruct) of Object;
+  TPause = record
+    I, I1, I2   : Integer;
+    X, XR, W, SW: Single;
+  end;
+  TPauses = array of TPause;
+  TLineStyle = (lsNone, lsSolid, lsDash);
+  TGridLine = class(TLRptPen)
+  public
+    { Public declarations }
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    class procedure Read(RptPen: TLRptPen; Reader: TReader; FS: TStream; Ver: Integer); override;
+  published
+    { Published declarations }
+    property Style: TLineStyle read FStyle write SetStyle default lsSolid;
+  end;
+  TLRptGraph = class;
+  TGraphFrame = class(TInfoPersistent)
+  public
+    { Public declarations }
+    constructor Create(AGraph: TLRptGraph);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
+  published
+    { Published declarations }
+    property Visible: Boolean read FVisible write SetVisible default True;
+    property LeftLine: TLRptPen read FLeftLine write FLeftLine;
+    property RightLine: TLRptPen read FRightLine write FRightLine;
+    property TopLine: TLRptPen read FTopLine write FTopLine;
+    property BottomLine: TLRptPen read FBottomLine write FBottomLine;
+  end;
+  TCustomAxis = class(TInfoPersistent)
+  protected
+    { Protected declarations }
+    function GetMX: Double; virtual; abstract;
+    function GetPos: Integer; virtual; abstract;
+    procedure Paint(Canvas: TCanvas; Min, Max: Double; Xo, Yo, Page: Integer); virtual; abstract;
+    procedure PaintGrid(Canvas: TCanvas; Min, Max: Double; Xo, Yo: Integer); virtual; abstract;
+  public
+    { Public declarations }
+    GS: Integer;
+    constructor Create(AGraph: TLRptGraph; AIsHorz: Boolean);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure SetParams(Min, Max, AStepTicks, AStepLabels: Single);
+    procedure SetAppendString(Value: String);
+    procedure SetAppendLabel(Value: WideString);
+    property AppendLabel: WideString read FAppendLabel;
+    property Margin: Integer read FMargin write SetMargin default 0;
+    property MX: Double read GetMX;
+    property Pos: Integer read GetPos;
+    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
+  published
+    { Published declarations }
+    property StepTicks: Single read FStepTicks write SetStepTicks;
+    property StepLabels: Single read FStepLabels write SetStepLabels;
+    property AxisLabel: WideString read FLabel write SetLabel;
+    property LabelFontHeight: Integer read FLabelFontHeight write SetLabelFontHeight;
+    property Font: TFont read FFont write SetFont;
+    property Pen: TLRptPen read FPen write FPen;
+    property LabelsGridLine: TGridLine read FLabelsGridLine write FLabelsGridLine;
+    property TicksGridLine: TGridLine read FTicksGridLine write FTicksGridLine;
+    property Visible: Boolean read FVisible write SetVisible default True;
+    property Logaritmic10: Boolean read FIsLog write SetIsLog default False;
+    property GridVisible: Boolean read FGridVisible write SetGridVisible default True;
+    property AppendTxt: String read FAppendStr write SetAppendStr;
+  end;
+  TXPos = (xOrigin, xLeft, xRight);
+  TYPos = (yOrigin, yTop, yBottom);
+  TAxisX = class(TCustomAxis)
+  protected
+    { Protected declarations }
+    function GetMX: Double; override;
+    function GetPos: Integer; override;
+    procedure Paint(Canvas: TCanvas; Min, Max: Double; Xo, Yo, Page: Integer); override;
+    procedure PaintGrid(Canvas: TCanvas; Min, Max: Double; Xo, Yo: Integer); override;
+  public
+    { Public declarations }
+    IsNoPaint: Boolean;
+    constructor Create(AGraph: TLRptGraph);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Paint2(Canvas: TCanvas; Min, Max: Double; Xo, Yo, Page: Integer);
+    procedure PaintGrid2(Canvas: TCanvas; Min, Max: Double; TicksLineStyle, LabelsLineStyle: TLineStyle);
+  published
+    { Published declarations }
+    property TimeLabels: Boolean read FTimeLabels write SetTimeLabels;
+    property Position: TYPos read FYPos write SetYPos default yOrigin;
+    property LabelPosition: TAlignment read FLabelPos write SetLPos default taRightJustify;
+  end;
+  TAxisY = class(TCustomAxis)
+  protected
+    { Protected declarations }
+    function GetMX: Double; override;
+    function GetPos: Integer; override;
+    procedure Paint(Canvas: TCanvas; Min, Max: Double; Xo, Yo, Page: Integer); override;
+    procedure PaintGrid(Canvas: TCanvas; Min, Max: Double; Xo, Yo: Integer); override;
+  public
+    { Public declarations }
+    Y2XOL     : Integer;
+    FYColor   : TColor;
+    IsNextLine: Boolean;
+    constructor Create(AGraph: TLRptGraph);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Paint2(Canvas: TCanvas; Min, Max: Double; Xo, Yo: Integer; MinY2, MaxY2: Double);
+    procedure PaintGrid2(Canvas: TCanvas; Min, Max: Double; Xo, Yo: Integer);
+    function GetWidth2(Canvas: TCanvas): Integer;
+    property Margin2: Integer read FMargin2 write SetMargin2 default 0;
+  published
+    { Published declarations }
+    property Position: TXPos read FXPos write SetXPos default xOrigin;
+    property LabelPosition: TTextLayout read FLabelPos write SetLPos default tlTop;
+    property Margin;
+    property IsY2: Boolean read FIsY2 write SetIsY2 default False;
+    property Y2A: Single read FY2A write SetY2A;
+    property Y2B: Single read FY2B write SetY2B;
+    property Y2Color: TColor read FY2Color write SetY2Color;
+    property Label2: String read FLabel2 write SetLabel2;
+    property YColor: TColor read FYColor write SetYColor;
+  end;
+  TCurveStyle = (csSolid, csDash, csNone);
+  TCurvePen = class(TLRptPen)
+  public
+    { Public declarations }
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    class procedure Read(RptPen: TLRptPen; Reader: TReader; FS: TStream; Ver: Integer); override;
+  published
+    { Published declarations }
+    property Style: TCurveStyle read FStyle write SetStyle default csSolid;
+    property Length: Single read FLength write SetLength;
+    property Ratio: Single read FRatio write SetRatio;
+  end;
+  TCurve = class(TInfoCollectionItem)
+  protected
+    { Protected declarations }
+    function GetDisplayName: String; override;
+  public
+    { Public declarations }
+    constructor Create(Collection: TCollection); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    class procedure Read(Curve: TCurve; Reader: TReader; FS: TStream; Ver: Integer); overload;
+    procedure Bar(X1, Y1, X2, Y2: Extended);
+    procedure UpdateCanvas;
+    procedure FirstPoint(const X, Y: Extended);
+    function NextPoint(const X, Y: Extended): Boolean;
+    procedure FirstPointI(const X, Y: Integer);
+    procedure NextPointI(const X, Y: Integer);
+    property Graph: TLRptGraph read FGraph;
+    property Canvas: TCanvas read FCanvas write FCanvas;
+    property Dp[const X, Y: Extended]: TPoint read GetDp;
+  published
+    { Published declarations }
+    property Caption: String read FCaption write SetCaption;
+    property Pen: TCurvePen read FPen write SetPen;
+    property Brush: TBrush read FBrush write SetBrush;
+    property Vector: TDVector read FVariable write SetVariable;
+    property Filtered: Boolean read FFiltered write SetFiltered;
+    property XStep: Single read FXStep write SetXStep;
+    property FirstRow: Integer read FFirstRow write SetFirstRow;
+    property RowStep: Integer read FRowStep write SetRowStep;
+    property Column: Cardinal read FColumn write SetColumn;
+  end;
+  TCurves = class(TInfoCollection)
+  protected
+    function GetFormClass: TFormClass; override;
+  public
+    { Public declarations }
+    constructor Create(ARptGraph: TLRptGraph);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    function Add: TCurve;
+    property Curves[Index: Integer]: TCurve read GetCurve; default;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+  TRptGraphPaintCurve = procedure(Curve: TCurve) of Object;
+  TRptGraphCurveProperties = procedure(Curve: TCurve; var Caption: String; Pen: TPen; Brush: TBrush) of Object;
+  TLegendPos = (lpAbsolute, lpRelative);
+  TLegendOrientation = (loHorizontal, loVertical, loVertical270);
+  TLegendComposition = (lcColumn, lcRow);
+  TRptLegend = class(TInfoPersistent)
+  public
+    { Public declarations }
+    constructor Create(AGraph: TLRptGraph);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Paint(Canvas: TCanvas);
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    { Published declarations }
+    property Visible: Boolean read FVisible write SetVisible;
+    property LeftPosition: Integer read FLeft write SetLeft;
+    property TopPosition: Integer read FTop write SetTop;
+    property Font: TFont read FFont write SetFont;
+    property LinesLength: Integer read FLength write SetLength;
+    property Position: TLegendPos read FPosition write SetPosition default lpAbsolute;
+    property Orientation: TLegendOrientation read FOrientation write SetOrientation default loHorizontal;
+    property Composition: TLegendComposition read FComposition write SetComposition default lcColumn;
+    property Frame: Boolean read FFrame write SetFrame default True;
+  end;
+  TCaptionPos = (cpTop, cpBottom);
+  TLRptGraph = class(TLRptComponent)
+  protected
+    { Protected declarations }
+    XPauses: TPauses;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    { Public declarations }
+    constructor Create(AOwnwer: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter); override;
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure GridLineH(Canvas: TCanvas; IH: Integer; IsDash: Boolean);
+    procedure GridLineHY(Canvas: TCanvas; IY: Integer; IsDash: Boolean);
+    procedure GridLineV(Canvas: TCanvas; IH: Integer; IsDash: Boolean);
+    procedure GridLineVX(Canvas: TCanvas; IX: Integer; IsDash: Boolean);
+    procedure PaintGrund(Canvas: TCanvas; Page: Integer; var PaintInfo: TPaintStruct);
+    procedure PaintIn(Canvas: TCanvas; Page: Integer; var PaintInfo: TPaintStruct); override;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+    procedure CalcMx;
+    property PosX: Integer read FPosX;
+    property PosY: Integer read FPosY;
+    property MX: Double read FMX;
+    property MY: Double read FMY;
+  published
+    { Published declarations }
+    property Width;
+    property Height;
+    property CurvesBackOrder: Boolean read FIsBackOrder write FIsBackOrder;
+    property AxisX: TAxisX read FAxisX write FAxisX;
+    property AxisY: TAxisY read FAxisY write FAxisY;
+    property Curves: TCurves read FCurves write FCurves;
+    property Legend: TRptLegend read Flegend write FLegend;
+    property Frame: TGraphFrame read FFrame write FFrame;
+    property MinX: Single read FMinX write SetMinX;
+    property MaxX: Single read FMaxX write SetMaxX;
+    property MinY: Single read FMinY write SetMinY;
+    property MaxY: Single read FMaxY write SetMaxY;
+    property Caption: WideString read FCaption write SetCaption;
+    property CaptionPosition: TCaptionPos read FCaptionPos write SetCaptionPos default cpTop;
+    property Font: TFont read FFont write SetFont;
+    property BackGround: TColor read FBackGround write SetBackGround default clNone;
+    property Stretch: Boolean read FStretch write SetStretch default True;
+    property OnPaintBackground: TRptGraphPaintEvent read FPaintGrund write FPaintGrund;
+    property OnPaint: TRptGraphPaintEvent read FPaintGraph write FPaintGraph;
+    property OnPaintAxis: TRptGraphPaintEvent read FPaintAxis write FPaintAxis;
+    property OnBeforePaintAxis: TRptGraphPaintEvent read FBeforePaintAxis write FBeforePaintAxis;
+    property OnAfterPaintAxis: TRptGraphPaintEvent read FAfterPaintAxis write FAfterPaintAxis;
+    property OnPaintCurve: TRptGraphPaintCurve read FRptGraphPaintCurve write FRptGraphPaintCurve;
+    property OnCurveProperties: TRptGraphCurveProperties read FRptGraphCurveProperties write FRptGraphCurveProperties;
+    property OnAfterCurvesPaint: TRptGraphPaintEvent read FAfterCurvesPaint write FAfterCurvesPaint;
+  end;
+  TGraphEditor = class(TDefaultEditor)
+  protected
+    procedure EditProperty(const Prop: IProperty; var Continue: Boolean); override;
+  public
+    procedure ExecuteVerb(Index: Integer); override;
+    function  GetVerb(Index: Integer): string; override;
+    function  GetVerbCount: Integer; override;
+  end;
+  TShapeTypeExt = (etNone, etLineH, etLineV, etLineFD, etLineBD);
+  TArrowType = (atBegin, atEnd);
+  TArrowTypeSet = set of TArrowType;
+  TLRptShape = class(TLRptComponent)
+  public
+    { Public declarations }
+    Is3DGrund: Boolean;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter); override;
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure Assign(Source: TPersistent); override;
+    procedure AssignShape(Item: TLRptShape);
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+    property IsShape: Boolean read FIsShape write SetIsShape;
+  published
+    { Published declarations }
+    property Shape: TShapeType read FShapeType write SetShapeType;
+    property ShapeExt: TShapeTypeExt read FShapeTypeExt write SetShapeTypeExt;
+    property Arrow: TArrowTypeSet read FArrowType write SetArrowType;
+    property Pen: TPen read FPen write SetPen;
+    property Brush: TBrush read FBrush write SetBrush;
+    property Transparent: Boolean read FTransparent write SetTransparent;
+    property Width;
+    property Height;
+    property Rx: Word read FRX write SetRX;
+    property Ry: Word read FRY write SetRY;
+    property OnPaint: TRptShapePaintEvent read FPaintEvent write FPaintEvent;
+  end;
+  TShapeProperty = class(TEnumProperty)
+  public
+    procedure Edit; override;
+    function GetAttributes: TPropertyAttributes; override;
+  end;
+  TShapeEditor = class(TDefaultEditor)
+  protected
+    procedure EditProperty(const Prop: IProperty; var Continue: Boolean); override;
+  public
+    procedure ExecuteVerb(Index: Integer); override;
+    function  GetVerb(Index: Integer): string; override;
+    function  GetVerbCount: Integer; override;
+  end;
+
+function IsLabel(H, StepTicks, StepLabel: Double): Boolean;
+procedure DotDotDashLine(DC: HDC; X1, Y1, X2, Y2, D0, D1, D2: Integer; R: TRect);
+procedure DotDashLine(DC: HDC; X1, Y1, X2, Y2, D0, D1, D2: Integer; R: TRect);
+procedure DashLine(DC: HDC; X1, Y1, X2, Y2, D1, D2: Integer; R: TRect);
+procedure DashCircle(DC: HDC; X1, Y1, R, D1, D2: Integer; PR: PRect);
+procedure DotDashCircle(DC: HDC; X1, Y1, R, D0, D1, D2: Integer; PR: PRect);
+procedure DotDotDashCircle(DC: HDC; X1, Y1, R, D0, D1, D2: Integer; PR: PRect);
+procedure DashEllipse(DC: HDC; X1, Y1, X2, Y2, D1, D2: Integer; PR: PRect);
+procedure DotDashEllipse(DC: HDC; X1, Y1, X2, Y2, D0, D1, D2: Integer; PR: PRect);
+procedure DotDotDashEllipse(DC: HDC; X1, Y1, X2, Y2, D0, D1, D2: Integer; PR: PRect);
+function Angle(X0, Y0, X, Y: Double): Double;

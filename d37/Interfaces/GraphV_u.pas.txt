@@ -1,0 +1,171 @@
+unit GraphV_u;
+
+interface
+
+uses
+  SysUtils, WinTypes, WinProcs, Messages, Classes, Graphics, Controls,
+  Forms, Dialogs, StdCtrls, LGraphPareditV, Menus, Variables_u, VarListForm_u, Var2DListForm_u,
+  ActnList, BaseFrame_u, PropDsgnForm_u, System.Types, Info_u, LicenceComponent_u, LBitBtn_u;
+
+const
+  crZoom = 2;
+
+type
+  TCurveIndex = 0..15;
+  TCounts     = array[0..15] of LongInt;
+  TSelection  = array[0..15] of Boolean;
+  gcStyle     = (gcTicks, gcScroll, gcGrid, gcWarning, gcUserDraw, gcTimeLabelsX, gcY2Ticks, gcX2Ticks,
+                 gcBtn, gcNoYGrid);
+  gcStyles    = set of gcStyle;
+  TZoomChangeEvent = procedure(Sender: TObject; IsZoomIn, IsZoomed: Boolean) of Object;
+  TPaintGraphEvent = procedure(Sender: TObject; Canvas: TCanvas; PosX, PosY: Integer; MX, MY: Double) of Object;
+  TPaintGridEvent = procedure(Sender: TObject; Canvas: TCanvas;
+    PosX, PosY: Integer; MX, MY, MinX, MinY, MaxX, MaxY, StepX, StepY, StepLX, StepLY: Double; R: TRect; var IsPaint: Boolean) of Object;
+  TPaintTickEvent = procedure(Sender: TObject; Canvas: TCanvas;
+    Pos: Integer; M, Min, Max, StepT, StepL: Double; R: TRect; var IsPaint: Boolean) of Object;
+  TPaintLabelEvent = procedure(Sender: TObject; Canvas: TCanvas;
+    Pos: Integer; M, Min, Max, Step: Double; R: TRect; var IsPaint: Boolean) of Object;
+  TGMouseEvent = procedure(Sender: TObject; X, Y: Integer) of Object;
+  TGKeyMouseEvent = procedure(Sender: TObject; X, Y, Key: Integer) of Object;
+  TIntervalEvent = procedure(Sender: TObject; XL1, XL2: Double) of Object;
+  TCursorPosEvent = procedure(Sender: TObject; X, Y: Double) of Object;
+  TZoomMode = (zmRectangle, zmHorizontal, zmVertical);
+  TLGraphControlV = class(TInfoCustomControl)
+  protected
+    { Protected declarations }
+    procedure CreateVectors; virtual;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure Paint; override;
+    procedure PaintFocus; virtual;
+    procedure CMParentCtl3DChanged(var Msg: TMessage); message cm_ParentCtl3DChanged;
+    procedure CMCtl3DChanged(var Msg: TMessage); message cm_Ctl3DChanged;
+    procedure CMEnabledChanged(var Msg: TMessage); message cm_EnabledChanged;
+    class procedure BuildCategory(List: TCategoryList); override;
+  public
+    { Public declarations }
+    ReadLock: Boolean;
+    constructor Create(AOwner: TComponent); override;
+    procedure CreateHandle; override;
+    function GetNamePath: String; override;
+    destructor Destroy; override;
+    class function CategoryList: TCategoryList; override;
+    procedure Write(Writer: TWriter; FS: TStream);
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer);
+    procedure PostRead(Frame: TBaseFrame);
+    procedure ZoomAll;
+    procedure XScrollTo(ScrollCode, Pos: Integer);
+    procedure YScrollTo(ScrollCode, Pos: Integer);
+    procedure SelectCurves;
+    procedure DefPaintXTicks(Canvas: TCanvas; Offset: Single);
+    procedure DefPaintXLabel(Canvas: TCanvas; Offset: Single);
+    procedure DefPaintXTicks2(Canvas: TCanvas; Offset: Single);
+    procedure DefPaintXLabel2(Canvas: TCanvas; Offset: Single);
+    procedure DefPaintYTicks(Canvas: TCanvas);
+    procedure DefPaintYLabel(Canvas: TCanvas);
+    procedure DefPaintYTicks2(Canvas: TCanvas);
+    procedure DefPaintYLabel2(Canvas: TCanvas);
+    procedure PaintGrid(Canvas: TCanvas; PosX, PosY: Integer; MX, MY: Double; R: TRect);
+    procedure PaintLabelX(Canvas: TCanvas; Font: TFont; PosX: Integer; MX: Double; R: TRect);
+    procedure PaintLabelY(Canvas: TCanvas; Font: TFont; PosY: Integer; MY: Double; R: TRect);
+    procedure SetTimeAxis(Value: Boolean; IncX: Single);
+    procedure SetMaxIndex(Ix: Integer);
+    procedure ShowSetupDialog(Sender: TObject);
+    property MX: Double read FMX;
+    property MY: Double read FMY;
+    property MinXR: Double read FMinXR write FMinXR;
+    property MaxXR: Double read FMaxXR write FMaxXR;
+    property MinYR: Double read FMinYR write FMinYR;
+    property MaxYR: Double read FMaxYR write FMaxYR;
+    property PosX: LongInt read FPosX;
+    property PosY: LongInt read FPosY;
+    property GraphWindow: TCustomControl read GraphWin;
+    property LabelsWindowX: TGraphicControl read LabelsWinX;
+    property LabelsWindowX2: TGraphicControl read LabelsWinX2;
+    property TicksWindowX: TGraphicControl read TicksWinX;
+    property TicksWindowX2: TGraphicControl read TicksWinX2;
+    property LabelsWindowY: TGraphicControl read LabelsWinY;
+    property LabelsWindowY2: TGraphicControl read LabelsWinY2;
+    property TicksWindowY: TGraphicControl read TicksWinY;
+    property TicksWindowY2: TGraphicControl read TicksWinY2;
+    property Btn: TLSpeedButton read FBtn;
+    property Selection[Index: TCurveIndex]: Boolean read GetSelection write SetSelection;
+    property ZoomIn: Boolean read FZoomIn write SetZoomIn default False;
+    property IntervalIn: Boolean read FIntervalIn write SetIntervalIn default False;
+    property ZoomMode: TZoomMode read FZoomMode write SetZoomMode default zmRectangle;
+    property IsZoomed: Boolean read FIsZoomed;
+    property Tracking: Boolean read FTracking write  FTracking default False;
+    property SetupAction: TCustomAction read FSetupActn write SetSetupActn;
+    property Variables: TVariables read FVariables write FVariables;
+    property GW: TCustomControl read GraphWin;
+    property HSB: TScrollBar read HScrollBar;
+    property VSB: TScrollBar read VScrollBar;
+    property IsLight: Boolean read FIsLight write SetIsLignt;
+    property Legend: TGraphicControl read FLegend write FLegend;
+  published
+    { Published declarations }
+    property Align;
+    property Anchors;
+    property PopupMenu;
+    property Visible;
+    property Enabled;
+    property TabStop;
+    property TabOrder;
+    property Font;
+    property ParentFont;
+    property Hint;
+    property ParentShowHint;
+    property Ctl3D;
+    property ParentCtl3D;
+    property Color;
+    property ParentColor;
+    property ShowHint;
+    property LicenceComponent: TLicenceComponent read FLicenceComponent write SetLicenceComponent;
+    property AutoScale: Boolean read FAutoScale write FAutoScale;
+    property Style: gcStyles read FStyle write SetStyles;
+    property Vectors: TVectorListCollection read FVectors write FVectors stored IsVectorsStored;
+    property XVector: TDVector read FXVector write FXVector;
+    property Parameters: TLGraphParametersV read FParameters write SetParameters;
+    property XInc: Double read FIncX write SetIncX;
+    property GraphBkColor: TColor read FGraphBkColor write SetGraphBkColor default clTeal;
+    property GridColor: TColor read FGridColor write SetGridColor default clBlack;
+    property LoWarningColor: TColor read FLoWarningColor write SetLoWarningColor default clLime;
+    property HiWarningColor: TColor read FHiWarningColor write SetHiWarningColor default clRed;
+    property CurvesColors: TCurvesColors read FCurvesColors write SetCurvesColors;
+    property TimeOffset: LongInt read FTimeOffset write SetTimeOffset default 0;
+    property Isotropic: Boolean read FIsotropic write SetIsotropic default False;
+    property YScale: Double read FYScale write SetYScale;
+    property WithLastPoint: Boolean read FWithLastPoint write SetWithLastPoint default True;
+    property FirstIndex: Word read FFirstIndex write SetFirstIndex default 0;
+    property ScrollStep: Word read FScrollStep write SetScrollStep default 8;
+    property X2_Visible: Boolean read GetX2Visible write SetX2Visible;
+    property Y2_Visible: Boolean read GetY2Visible write SetY2Visible;
+    property Parallel: Boolean read FIsParallel write SetParallel;
+    property Btn_Text: String read GetBtnText write SetBtnText;
+    property Btn_Width: Integer read GetBtnWidth write SetBtnWidth;
+    property OnStyleChange: TNotifyEvent read FStyleChange write FStyleChange;
+    property OnSetFocus: TNotifyEvent read FSetFocus write FSetFocus;
+    property OnKeyDown: TKeyEvent read FKeyDown write FKeyDown;
+    property OnBtnClick: TNotifyEvent read FBtnClick write FBtnClick;
+    property OnXScroll: TScrollEvent read FXScroll write FXScroll;
+    property OnYScroll: TScrollEvent read FYScroll write FYScroll;
+    property OnMouseDown: TGMouseEvent read FMouseDown write FMouseDown;
+    property OnKeyMouseDown: TGKeyMouseEvent read FKeyMouseDown write FKeyMouseDown;
+    property OnGraphMouseLeave: TNotifyEvent read FGraphMouseLeave write FGraphMouseLeave;
+    property OnCursorPos: TCursorPosEvent read FCursorPos write FCursorPos;
+    property OnZoomChange: TZoomChangeEvent read FZoomChange write FZoomChange;
+    property OnPaintGraph: TPaintGraphEvent read FPaintGraph write FPaintGraph;
+    property OnPaintGrid: TPaintGridEvent read FPaintGrid write FPaintGrid;
+    property OnPaintTickX: TPaintTickEvent read FPaintTickLabelX write FPaintTickLabelX;
+    property OnPaintTickY: TPaintTickEvent read FPaintTickLabelY write FPaintTickLabelY;
+    property OnPaintLabelX: TPaintLabelEvent read FPaintLabelX write FPaintLabelX;
+    property OnPaintLabelY: TPaintLabelEvent read FPaintLabelY write FPaintLabelY;
+    property OnPaintTickX2: TPaintTickEvent read FPaintTickLabelX2 write FPaintTickLabelX2;
+    property OnPaintTickY2: TPaintTickEvent read FPaintTickLabelY2 write FPaintTickLabelY2;
+    property OnPaintLabelX2: TPaintLabelEvent read FPaintLabelX2 write FPaintLabelX2;
+    property OnPaintLabelY2: TPaintLabelEvent read FPaintLabelY2 write FPaintLabelY2;
+    property OnInterval: TIntervalEvent read FIntervalEvent write FIntervalEvent;
+  end;
+  TGraph2DControlV = class(TLGraphControlV)
+  protected
+    procedure CreateVectors; override;
+  end;

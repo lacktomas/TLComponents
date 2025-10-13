@@ -1,0 +1,97 @@
+unit Graph3D_u;
+
+interface
+
+uses
+  WinApi.Windows, Classes, Graphics, Controls, DesignIntf, WinApi.OpenGL, OpenGL_u, Info_u, System.UITypes, PropEditors_u,
+  GrafSpl_u, System.Types, System.SysUtils, RptGraph3D_u, WinTypes, WinProcs, Messages, Vcl.Forms, Math_u, LicenceComponent_u;
+
+type
+  TL3DGraph = class;
+  TOnBuildGL = procedure(Sender: TObject; M: Single) of Object;
+  TPlane = class(TInfoPersistent)
+  public
+    constructor Create(AGraph: TL3DGraph);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+  published
+    property Visible: Boolean read FVisible write SetVisible;
+    property Color: TColor read FColor write SetColor;
+    property Alpha: Single read FAlpha write SetAlpha;
+    property Brush_Color: TColor read FBrushColor write SetBrushColor;
+    property Position: Single read FPosition write SetPosition;
+  end;
+  TL3DGraph = class(TInfoCustomControl)
+  protected
+    M: Single;
+    procedure BuildGL(glRC: HGLRC); virtual;
+    class procedure BuildCategory(List: TCategoryList); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure WMLButtonDown(var Msg: TWMLButtonDown); message wm_LButtonDown;
+    procedure WMMButtonDown(var Msg: TWMMButtonDown); message wm_MButtonDown;
+    procedure WMRButtonDown(var Msg: TWMRButtonDown); message wm_RButtonDown;
+    procedure WMMouseMove(var Msg: TWMMouseMove); message wm_MouseMove;
+    procedure WMLButtonUp(var Msg: TWMLButtonUp); message wm_LButtonUp;
+    procedure WMMButtonUp(var Msg: TWMMButtonUp); message wm_MButtonUp;
+    procedure WMRButtonUp(var Msg: TWMRButtonUp); message wm_RButtonUp;
+    procedure WMGetDlgCode(var Msg: TWMGetDlgCode); message wm_GetDlgCode;
+    procedure WMKeyDown(var Msg: TWMKeyDown); message wm_KeyDown;
+    procedure WMSetFocus(var Msg: TWMSetFocus); message wm_SetFocus;
+    procedure WMKillFocus(var Msg: TWMKillFocus); message wm_KillFocus;
+    procedure Paint; override;
+  public
+    RepaintLock: Boolean;
+    constructor Create(AOwner: TComponent); override;
+    procedure CreateHandle; override;
+    destructor Destroy; override;
+    function GetNamePath: String; override;
+    class function CategoryList: TCategoryList; override;
+    procedure Assign(Source: TPersistent); override;
+    property xAngle: Single read xRotate write SetxRotate;
+    property yAngle: Single read yRotate write SetyRotate;
+    property zAngle: Single read zRotate write SetzRotate;
+    property xTrans: Single read TransX write SetTransX;
+    property yTrans: Single read TransY write SetTransY;
+    property zTrans: Single read TransZ write SetTransZ;
+  published
+    property Align;
+    property Left;
+    property Top;
+    property Width;
+    property Height;
+    property Hint;
+    property TabStop;
+    property Background_Farbe: TColor read FGrundFarbe write SetGrundFarbe;
+    property Frame_Color: TColor read GetFrameColor write SetFrameColor;
+    property Frame_Width: Byte read GetFrameWidth write SetFrameWidth;
+    property Rotate: String read GetRotate write SetRotate;
+    property Translate: String read GetTranslate write SetTranslate;
+    property TranslateStep: Single read TransStep write SetTransStep;
+    property Scale: Single read FScale write SetScale;
+    property Color_range: Boolean read FColorRange write SetColorRange;
+    property LightAmbient: String read GetLightAmbient write SetLightAmbient;
+    property LightDiffuse: String read GetLightDiffuse write SetLightDiffuse;
+    property LightSpecular: String read GetLightSpecular write SetLightSpecular;
+    property LightPosition: String read GetLightPosition write SetLightPosition;
+    property x_Min: Single read FXMin write SetXMin;
+    property x_Max: Single read FXMax write SetXMax;
+    property x_StepTicks: Single read FXTicks write SetXTicks;
+    property x_StepLabels: Single read FXLabels write SetXLabels;
+    property x_Caption: String read FXCaption write SetXCaption;
+    property y_Min: Single read FYMin write SetYMin;
+    property y_Max: Single read FYMax write SetYMax;
+    property y_StepTicks: Single read FYTicks write SetYTicks;
+    property y_StepLabels: Single read FYLabels write SetYLabels;
+    property y_Caption: String read FYCaption write SetYCaption;
+    property z_Min: Single read FZMin write SetZMin;
+    property z_Max: Single read FZMax write SetZMax;
+    property z_StepTicks: Single read FZTicks write SetZTicks;
+    property z_StepLabels: Single read FZLabels write SetZLabels;
+    property z_Caption: String read FZCaption write SetZCaption;
+    property xy_Plane: TPlane read FXYPlane write SetXYPlane;
+    property yz_Plane: TPlane read FYZPlane write SetYZPlane;
+    property zx_Plane: TPlane read FZXPlane write SetZXPlane;
+    property LicenceComponent: TLicenceComponent read FLicenceComponent write SetLicenceComponent;
+    property OnBuildGL: TOnBuildGL read FOnBuildGL write FOnBuildGL;
+  end;
