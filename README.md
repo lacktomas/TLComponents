@@ -6,7 +6,7 @@ TEquation 		      - component for converting a text mathematical equation into a
 TLMathMemo		      - component for writing a mathematical equation with brackets of different color according to their level
 TVariables		      - component containing the objects TFloatScalar, TFloatVector, TDoubleVector and TFloatMatrix
 TPropertyTreeView	  - component enabling editing of components properties
-TLRichEdit		      - component derived from TRichEDit with the option to save content into *.dfm with components text editor Rtf
+TLRichEdit		      - component derived from TRichEdit with the option to save content into *.dfm with components text editor Rtf
 TLGraphControl		  - component for drawing of graphs
 TLGraphControlV		  - component for drawing of vectors and matrix contents 
 TGraphVLegend		    - legend for TGraphControlV component
