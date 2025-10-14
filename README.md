@@ -32,6 +32,7 @@ TLRpt			          - component for creation and printing of reports. It contains 
 TPagesGrid		      - component derived from TCustomDrawGrid intended for page view and page selection of the TLRpt component  
 
 TPagesTreeView		  - component derived from TCustomTreeView intended for chapters and pages view with the option to select TLRpt component chapters and pages
+
 TLSpeedButton		    - component derived from TSpeedButton
 
 TLDock			        - component for docking of TLToolbar and TLToolWindow components
