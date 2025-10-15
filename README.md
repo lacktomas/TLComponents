@@ -1,7 +1,7 @@
 # TLComponents
 TLComponents for Delphi
 
-TLicenceComponent 	- license component
+TLicenceComponent 	- licence component
 
 TEquation 		      - component for converting a text mathematical equation into a numerical value
 
