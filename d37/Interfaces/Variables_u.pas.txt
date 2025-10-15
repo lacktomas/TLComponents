@@ -1,0 +1,783 @@
+unit Variables_u;
+
+interface
+
+uses
+  Windows, SysUtils, Classes, Graphics, Forms, Vassbotn.Vcl.Complex,
+  PropEditors_u, Math_u, ComCtrls, ListEditor, DIForm_u, TypInfo, Messages,
+  DesignEditors, DesignIntf, BaseFrame_u, ProgressForm_u, LRpt_u,
+  Controls, System.UITypes, System.Types, Info_u, ComObj,
+  Variants, LicenceComponent_u;
+
+const
+  MaxDimProcs = 16;
+  wm_Escape   = wm_User + 403;
+
+  vartNone            = -1;
+  vartFloat           = 2;
+  vartDoubleVector    = 8;
+  vartFloatVector     = 9;
+  vartFloatMatrix     = 12;
+
+  wm_Update = wm_User + 1;
+  udClear   = 1;
+  udAdd     = 2;
+  udRefresh = 3;
+
+type
+  TBigSingle1D = array[0..999999] of Single;
+  PBigSingle1D = ^TBigSingle1D;
+  TStatValue = record
+    N      : Integer;
+    X, Y, Z: Single;
+  end;
+  TStatValues = array of TStatValue;
+  TVariables = class;
+  TChebyshev = class;
+  TWeightFilter = class;
+  TVariableProperty = class(TComponentProperty)
+  public
+    procedure GetValues(Proc: TGetStrProc); override;
+  end;
+  TCustomVariable = class(TListComponent)
+  protected
+    { Protected declarations }
+    function GetCount: LongWord; virtual;
+    procedure SetCount(Value: LongWord); virtual;
+    function GetMinY(I: Integer): Single; virtual;
+    function GetMaxY(I: Integer): Single; virtual;
+    function GetStpT(I: Integer): Single; virtual;
+    function GetStpL(I: Integer): Single; virtual;
+    procedure SetMinY(I: Integer; Value: Single); virtual;
+    procedure SetMaxY(I: Integer; Value: Single); virtual;
+    procedure SetStpT(I: Integer; Value: Single); virtual;
+    procedure SetStpL(I: Integer; Value: Single); virtual;
+    function GetEnabled(I: Integer): Boolean; virtual;
+    procedure SetEnabled(I: Integer; Value: Boolean); virtual;
+    procedure UpdateFilter(Sender: TObject); virtual;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function HasParent: Boolean; override;
+    function GetParentComponent: TComponent; override;
+    procedure SetParentComponent(AParent: TComponent); override;
+    procedure Clear; virtual;
+    procedure AssignV(V: TCustomVariable); virtual;
+    procedure AssignVNext(V: TCustomVariable; L: Integer); virtual;
+    class function CalcHistogram(SA: TSingle1D; var XM, XS: Extended; FN: Integer = 100): TStatValues;
+    class function CalcHistogramD(SA: TDouble1D; var XM, XS: Extended; FN: Integer = 100): TStatValues;
+    procedure Read(Matrix: Variant; C: array of Integer; var IB, IE: Integer); overload; virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); overload; virtual;
+    function IsVector: Boolean; virtual;
+    function IsMatrix: Boolean; virtual;
+    procedure CalcMinMax; virtual;
+    function IsYLabels: Boolean; virtual;
+    function CalcYOffset: Double; virtual;
+    function CheckCircular(V: TCustomVariable): Boolean; virtual;
+    property OwnerVariables: TVariables read FOwnerVariables;
+    property MinY[I: Integer]: Single read GetMinY write SetMinY;
+    property MaxY[I: Integer]: Single read GetMaxY write SetMaxY;
+    property StepTicks[I: Integer]: Single read GetStpT write SetStpT;
+    property StepLabels[I: Integer]: Single read GetStpL write SetStpL;
+    property IsHLimit: Boolean read FIsHLimit write FIsHLimit;
+    property HLimit: Single read FHLimit write FHLimit;
+    property HColor: TColor read FHColor write FHColor;
+    property IsHLimit2: Boolean read FIsHLimit2 write FIsHLimit2;
+    property HLimit2: Single read FHLimit2 write FHLimit2;
+    property HColor2: TColor read FHColor2 write FHColor2;
+    property IsDLimit: Boolean read FIsDLimit write FIsDLimit;
+    property DLimit: Single read FDLimit write FDLimit;
+    property DColor: TColor read FDColor write FDColor;
+    property IsDLimit2: Boolean read FIsDLimit2 write FIsDLimit2;
+    property DLimit2: Single read FDLimit2 write FDLimit2;
+    property DColor2: TColor read FDColor2 write FDColor2;
+    property OffsetY: Single read FOffsetY write FOffsetY;
+    property Mult: Single read FMult write FMult;
+    property ID: Integer read GetID;
+    property V[I, J: LongWord]: Double read GetV;
+    property ComplexV[I, J: LongWord]: TComplex read GetComplexV;
+    property Enabled[I: Integer]: Boolean read GetEnabled write SetEnabled;
+    property Chebyshev: TChebyshev read FChebyshev;
+  published
+    property Count: LongWord read GetCount write SetCount;
+    property VarUnit: String read FVarUnit write FVarUnit;
+    property Description;
+  end;
+  TCustomVarClass = class of TCustomVariable;
+  TEnabledArray = array of Boolean;
+  TInputVariables = class;
+  TVarItem = class(TInfoComponent)
+  protected
+    FList    : TInputVariables;
+    FVariable: TCustomVariable;
+    FDescript: String;
+    FItemName: String;
+    function GetText: String; virtual;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Assign(Source: TPersistent); override;
+    function GetVarTyp: TVarTyp;
+    function GetValue(Ix: array of Integer; T: Double): TComplex; virtual;
+    function IsMx: Boolean;
+    class function GetDefName: String; virtual;
+    property Text: String read GetText;
+    property InputVariables: TInputVariables read FList;
+  published
+    property Variable: TCustomVariable read FVariable write SetVariable;
+    property Description: String read FDescript write FDescript;
+  end;
+  TVarItemClass = class of TVarItem;
+  TInputVariables = class(TContainer)
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Assign(Source: TPersistent); override;
+    function UniqueName(const AName: String): String;
+    function NameItems(const AName: String): TVarItem;
+    function IsUsed(VarItem: TVarItem): Boolean;
+    function IsUsedVariable(Variable: TCustomVariable): Boolean;
+    property VarItems[Index: Integer]: TVarItem read GetVar; default;
+  end;
+  TDVariable = class;
+  TUpdateRec = record
+    Variable: TDVariable;
+    Row     : Integer;
+  end;
+  PUpdateRec = ^TUpdateRec;
+  TDVariable = class(TCustomVariable)
+  protected
+    FAutoSave   : Boolean;
+    FIsImaginary: Boolean;
+    procedure UpDateUserItem(User: TUsersItem; Row, Col: Integer); virtual; abstract;
+    procedure SetUserItemSize(User: TUsersItem; RowCount: Integer); virtual;
+    procedure PostRead(Frame: TBaseFrame); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure DefineProperties(Filer: TFiler); override;
+  public
+    ReadLock: Boolean;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter; FS: TStream); virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); virtual;
+    procedure ReadData(Stream: TStream); virtual;
+    procedure PostReadData;
+    function GetType: Integer; virtual;
+    function GetDisplayName: String; virtual; abstract;
+    function GetUserItemClass: TUsersItemClass; virtual; abstract;
+    procedure SetUsersDefValue(ARow: Integer);
+    procedure SetUsersSize(RowCount: Integer);
+    procedure ClearUsers(Sender: TObject); virtual;
+    procedure UpdateUsers(Sender: TObject); virtual;
+    procedure RefreshUsers(Sender: TObject); virtual;
+    procedure UpdateUsersAt(Sender: TObject; const ARow, ACol: LongWord); virtual;
+    property PValue[I: LongWord]: Pointer read GetPValue;
+    property FloatValue: Extended read GetFloatValue write SetFloatValue;
+    property StringValue[I,J: LongWord]: String read GetStringValue;
+    property StringComplexValue[I, J: LongWord]: String read GetStringComplexValue;
+    property Users: TUsersCollection read FUsers stored False;
+    property SaveData: Boolean read FAutoSave write FAutoSave default False;
+    property IsImaginary: Boolean read FIsImaginary;
+  end;
+  TFloatScalar = class(TDVariable)
+  protected
+    procedure UpDateUserItem(User: TUsersItem; Row, Col: Integer); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    function GetType: Integer; override;
+    function GetDisplayName: String; override;
+    function GetUserItemClass: TUsersItemClass; override;
+    procedure CopyDataFrom(Source: TFloatScalar);
+  published
+    property Value: Extended read GetFloatValue write SetFloatValue;
+    property Value_Imaginary: Extended read GetFloatImValue write SetFloatImValue;
+  end;
+  TValueEditor = string[32];
+  TDVector = class(TDVariable)
+  protected
+    { Protected declarations }
+    function GetMinY(I: Integer): Single; override;
+    procedure SetMinY(I: Integer; Value: Single); override;
+    function GetMaxY(I: Integer): Single; override;
+    procedure SetMaxY(I: Integer; Value: Single); override;
+    function GetCount: LongWord; override;
+    procedure SetUserItemSize(User: TUsersItem; RowCount: Integer); override;
+    function GetFloatValueAt(Row, Col: LongWord; Filtered: Boolean = False): Extended; virtual; abstract;
+    function GetComplexValueAt(Row, Col: LongWord): TComplex; virtual; abstract;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); override;
+    procedure ReadData(Stream: TStream); override;
+    function IsVector: Boolean; override;
+    procedure Load; virtual;
+    procedure UpdateUsersAt(Sender: TObject; const ARow, ACol: LongWord); override;
+    procedure UpdateUsers(Sender: TObject); override;
+    property CapacityStep: Word read FCapacityStep write SetCapacityStep default 100;
+    property FloatValueAt[Row, Col: LongWord; Filtered: Boolean = False]: Extended read GetFloatValueAt;
+    property ComplexValueAt[Row, Col: LongWord]: TComplex read GetComplexValueAt;
+    property SubCount: Byte read FSubCount write SetSubCount;
+    property SortIx[I: Integer]: Integer read GetSortIx;
+  published
+    property Value: TValueEditor read FValueEditor write FValueEditor stored False;
+    property SaveData;
+  end;
+  TNRFilter = class;
+  TNRFilterThread = class(TThread)
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AFilter: TNRFilter; AFB, AC, AL, AAFN: LongWord; const AA: PSingle1D; const AFA: PSingle1D);
+  end;
+  TTypFiltra = (No, LP, HP, BP, BS, D);
+  TTypChebyshev = No..BS;
+  TDblGetDataFn = function(Ix: LongWord): Double of Object;
+  TSngGetDataFn = function(Ix: LongWord): Single of Object;
+  TCustomFloatVector = class;
+  TNRFilter = class(TInfoPersistent)
+  public
+    CallLock  : Boolean;
+    Locked    : Boolean;
+    IsParallel: Boolean;
+    constructor Create(AVector: TCustomFloatVector);
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    class procedure Read(P: TInfoPersistent; Reader: TReader; Ver: Integer; fm: Single = 0.0); override;
+    procedure SetParam(ATyp: TTypFiltra; Avz, Afd, Afh, AD, AE: Single; ADivM: Word);
+    procedure Assign(Source: TPersistent); override;
+    function Y(Ix: LongWord; A: TDouble1D; var H: Double): Boolean; overload;
+    function Y(Ix: LongWord; A: TSingle1D; var H: Single): Boolean; overload;
+    function Y(Ix, Jx: LongWord; A: PSingle2D; var H: Single): Boolean; overload;
+    function Y(Func: TDblGetDataFn; Ix, Count: LongWord; var H: Double): Boolean; overload;
+    function Y(Func: TSngGetDataFn; Ix, Count: LongWord; var H: Single): Boolean; overload;
+    function ArrayY(const A: TDouble1D; const C: LongWord; var FA: TDouble1D): Boolean; overload;
+    function ArrayY(const A: TSingle1D; const C: LongWord; var FA: TSingle1D): Boolean; overload;
+    function ArrayY(const A: TSingle2D; const Cnt: LongWord; var FA: TSingle1D): Boolean; overload;
+    function ArrayY(Func: TDblGetDataFn; const C: Integer; var FA: TDouble1D): Boolean; overload;
+    function ArrayY(Func: TSngGetDataFn; const C: Integer; var FA: TSingle1D): Boolean; overload;
+    function ArrayY(const BId: Integer; const X: TSingle2D; var B: TSingle1D; const F, BSz, Cnt: LongWord;
+      var Y: TSingle1D; var OldP, BufPos: LongWord): LongWord; overload;
+    function H(F: Double): Double;
+    function H2(F: Double): Double;
+    property B: TDouble1D read FB;
+    property N: LongWord read FN;
+    property MaxP: Single read FMaxP;
+    property Vector: TCustomFloatVector read FVector;
+    property InProcess: Boolean read FInProcess;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property Typ: TTypFiltra read FTyp write SetTyp;
+    property fm: Single read Fvz write Setfvz;
+    property fu: Single read Ffd write Setfd;
+    property fo: Single read Ffh write Setfh;
+    property Delta: Single read FD write SetDelta;
+    property Epsilon: Single read FE write SetEpsilon;
+    property Breite: String read GetN write SetN;
+    property Lambda: String read GetL write SetN;
+    property Div_D: Word read FDivM write SetDivD;
+    property fm_Div_D: Single read FFreqDivD write SetFreqDivD;
+  end;
+  TChebyshev = class(TInfoPersistent)
+  public
+    constructor Create(AVariable: TCustomVariable);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    class procedure Read(P: TInfoPersistent; Reader: TReader; Ver: Integer; fm: Single = 0.0); override;
+    procedure SetParam(ATyp: TTypChebyshev; Avz, Afu, Afc, APR: Single; ANP, ADivM: Word);
+    function Y(const X: TDouble1D; var Y: TDouble1D): Boolean; overload;
+    function Y(const X: TSingle1D; var Y: TSingle1D): Boolean; overload;
+    function Y(const X: TSingle2D; const Cnt: LongWord; var Y: TSingle1D): Boolean; overload;
+    function Y(const X: TSingle1D; const Cnt: LongWord; var Y: TSingle1D): Boolean; overload;
+    function Y(Func: TDblGetDataFn; const C: LongWord; var Y: TDouble1D): Boolean; overload;
+    function Y(Func: TSngGetDataFn; const C: LongWord; var Y: TSingle1D): Boolean; overload;
+    function Y(const BId: Integer; const X: TSingle2D; var B: TSingle1D; const F, BSz, Cnt: LongWord;
+      var Y: TSingle1D; var OldP, BufPos: LongWord): LongWord; overload;
+    function H(F: Double): TComplex;
+    function H2(F: Double): TComplex;
+    property A: TDouble1D read FA;
+    property B: TDouble1D read FB;
+    property cutoff: Single read Fcutoff;
+    property Variable: TCustomVariable read FVariable;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property Typ: TTypChebyshev read FTyp write SetTyp;
+    property fm: Single read Fvz write SetFvz;
+    property fc: Single read FFreq write Setfc;
+    property fu: Single read FFreqU write SetfcU;
+    property PR: Single read FPR write SetPR;
+    property NP: LongWord read FNP write SetNP;
+    property Div_D: Word read FDivM write SetDivD;
+    property fm_Div_D: Single read FFreqDivD write SetFreqDivD;
+  end;
+  TGewichtTyp = (gWa, gWb, gWc, gWd, gWb_x_gWa, gWc_x_gWa, gWd_x_gWa, C116_x_gWb, C116_x_gWb_x_gWa, gWp, gWBand);
+  TWI = class(TPersistent)
+  public
+    constructor Create(AGewichtFilter: TWeightFilter);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(WI: TWI; Reader: TReader; Ver: Integer);
+    procedure SetParam(AF1, AF2: Single; AInvert: Boolean);
+    function Hf(f: Single): Single;
+    property GewichtFilter: TWeightFilter read FGewichtFilter;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property f1: Single read FF1 write SetF1;
+    property f2: Single read FF2 write SetF2;
+    property Bandstop: Boolean read FInvert write SetInvert;
+  end;
+  TWa = class(TPersistent)
+  public
+    constructor Create(AWeightFilter: TWeightFilter);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(Wa: TWa; Reader: TReader; Ver: Integer);
+    function Hf(S: TComplex): TComplex;
+    property WeightFilter: TWeightFilter read FWeightFilter;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property f1: Single read FF1 write SetF1;
+    property f2: Single read FF2 write SetF2;
+    property Q1: Single read FQ1 write SetQ1;
+  end;
+  TWb = class(TPersistent)
+  public
+    Wa: TWa;
+    constructor Create(AWeightFilter: TWeightFilter);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(Wb: TWb; Reader: TReader; Ver: Integer);
+    function Hf(S: TComplex): TComplex;
+    property WeightFilter: TWeightFilter read FWeightFilter;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property f3: Single read FF3 write SetF3;
+    property f4: Single read FF4 write SetF4;
+    property f5: Single read FF5 write SetF5;
+    property f6: Single read FF6 write SetF6;
+    property Q2: Single read FQ2 write SetQ2;
+    property Q3: Single read FQ3 write SetQ3;
+    property Q4: Single read FQ4 write SetQ4;
+    property K: Single read FK write SetK;
+  end;
+  TWd = class(TPersistent)
+  public
+    Wa: TWa;
+    constructor Create(AWeightFilter: TWeightFilter); virtual;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(Wd: TWd; Reader: TReader; Ver: Integer);
+    function Hf(S: TComplex): TComplex;
+    property WeightFilter: TWeightFilter read FWeightFilter;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property f3: Single read FF3 write SetF3;
+    property f4: Single read FF4 write SetF4;
+    property Q2: Single read FQ2 write SetQ2;
+    property K: Single read FK write SetK;
+  end;
+  TWc = class(TWd)
+  public
+    constructor Create(AWeightFilter: TWeightFilter); override;
+  end;
+  TWp = class(TPersistent)
+  public
+    constructor Create(AWeightFilter: TWeightFilter);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(Wp: TWp; Reader: TReader; Ver: Integer);
+    function Hf(S: TComplex): TComplex;
+    property WeightFilter: TWeightFilter read FWeightFilter;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+    property f2: Single read FF2 write SetF2;
+  published
+    property f3: Single read FF3 write SetF3;
+    property f4: Single read FF4 write SetF4;
+    property Q2: Single read FQ2 write SetQ2;
+    property K: Single read FK write SetK;
+  end;
+  TWeightFilter = class(TPersistent)
+  public
+    RePrev: TSingle1D;
+    F0    : LongWord;
+    constructor Create(AVariable: TCustomFloatVector);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(GF: TWeightFilter; Reader: TReader; Ver: Integer);
+    procedure SetParam(AEnabled: Boolean; AGewicht: TGewichtTyp; AM: Integer);
+    function Y(const X: TDouble1D; var Y: TDouble1D): Boolean; overload;
+    function Y(const X: TSingle1D; var Y: TSingle1D): Boolean; overload;
+    function Y(const X: TSingle2D; const Cnt: LongWord; var Y: TSingle1D): Boolean; overload;
+    function Y(const X: TSingle1D; const Cnt: LongWord; var Y: TSingle1D): Boolean; overload;
+    function Y(Func: TDblGetDataFn; const Cnt: Integer; var Y: TDouble1D): Boolean; overload;
+    function Y(Func: TSngGetDataFn; const Cnt: Integer; var Y: TSingle1D): Boolean; overload;
+    function Y(const BId: Integer; const X: TSingle2D; var B: TSingle1D; const F, BSz, Cnt: LongWord;
+      var Y: TSingle1D; var OldP, BufPos: LongWord): LongWord; overload;
+    function H(F: Double): TComplex;
+    property Variable: TCustomFloatVector read FVariable;
+    property MMax: Integer read FMMax;
+    property C116: TWd read FC116;
+    property OnUpdate: TNotifyEvent read FUpdate write FUpdate;
+  published
+    property Enabled: Boolean read FEnabled write SetEnabled;
+    property M: Integer read FM write SetM;
+    property N: Integer read FN write SetN;
+    property Time_interval: Single read FTimeInt write SetTimeInt;
+    property Weight: TGewichtTyp read FGewicht write SetGewicht;
+    property Wa: TWa read FWa;
+    property Wb: TWb read FWb;
+    property Wc: TWc read FWc;
+    property Wd: TWd read FWd;
+    property Wp: TWp read FWp;
+    property WBand: TWI read FWI;
+  end;
+  TFFT = class(TPersistent)
+  public
+    constructor Create(AVector: TCustomFloatVector);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter);
+    class procedure Read(FFT: TFFT; Reader: TReader; Ver: Integer);
+    class procedure DFT(CX, CY: TSingle1D; var N: Integer; var A, B: TSingle1D);
+    class procedure FFT(ReX, ImX: TSingle1D; N: Integer);
+    class procedure ReFFT(ReX, ImX: TSingle1D; N: Integer);
+    class procedure IFFT(ReX, ImX: TSingle1D; N: Integer);
+    class procedure ReIFFT(ReX, ImX: TSingle1D; N: Integer);
+    property Vector: TCustomFloatVector read FVector;
+    property fm: Single read FFreq write SetFreq;
+    property f0: Single read FFreq0 write SetFreq0;
+  published
+    property f_Step_Ticks: Single read FStepT write SetStepT;
+    property f_Step_Labels: Single read FStepL write SetStepL;
+    property f_Max: Single read FMax write SetMax;
+  end;
+  TSetVarValues = procedure (Sender: TObject; I, J: Integer; var VarValues: TExtended1D) of Object;
+  TCustomFloatVectorGetValue = procedure (Sender: TObject; I: Integer; var V: TComplex) of Object;
+  TCustomFloatVector = class(TDVector)
+  protected
+    { Protected declarations }
+    FFormat       : TFloatFormat;
+    FPrecision    : TFloatType;
+    FDigits       : Integer;
+    FNRFilter     : TNRFilter;
+    FWeightFilter : TWeightFilter;
+    FFFT          : TFFT;
+    FIsBlock      : Boolean;
+    NB, C, BSize  : LongWord;
+    FIntegral     : Single;
+    FNP           : Integer;
+    FOffset       : Single;
+    FMultiplicator: Single;
+    FCountF       : LongWord;
+    FOnUpdate     : TNotifyEvent;
+    procedure UpdateFilter(Sender: TObject); override;
+    procedure UpDateUserItem(User: TUsersItem; Row, Col: Integer); override;
+    procedure SetIntegral(Value: Single);
+    procedure SetNP(Value: Integer);
+    procedure ReadChebyshev(Stream: TStream);
+    procedure WriteChebyshev(Stream: TStream);
+    procedure ReadNRFilter(Stream: TStream);
+    procedure WriteNRFilter(Stream: TStream);
+    procedure ReadWeightFilter(Stream: TStream);
+    procedure WriteWeightFilter(Stream: TStream);
+    procedure ReadFFT(Stream: TStream);
+    procedure WriteFFT(Stream: TStream);
+    procedure ReadVarValues(Stream: TStream);
+    procedure WriteVarValues(Stream: TStream);
+    procedure DefineProperties(Filer: TFiler); override;
+    function GetChildOwner: TComponent; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+    class procedure BuildList(List: TStringList); override;
+    class procedure BuildCategory(List: TCategoryList); override;
+    function GetIsFilter: Boolean;
+  public
+    { Public declarations }
+    ReadCount  : LongWord;
+    //MaxDelta   : Single;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    class function GetInfoText(Name: String): String; override;
+    class function CategoryList: TCategoryList; override;
+    function GetImageIndex: Integer; virtual;
+    function GetDataF(I: Integer): Double; virtual;
+    procedure SetFloatValueAt(Row, Col: LongWord; Value: Extended); virtual;
+    procedure GetComplexSubVector(I: Integer; var SubVector: TComplex1D); virtual;
+    procedure SetComplexSubVector(I: Integer; SubVector: TComplex1D); virtual;
+    procedure Sort; virtual;
+    procedure CopyDataFrom(Source: TCustomFloatVector); virtual;
+    procedure BeginBlock(Rows, BlockSize: LongWord); virtual;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Loaded; override;
+    function GetUserItemClass: TUsersItemClass; override;
+    procedure ReadTxt(FileName: TFileName); virtual;
+    procedure Clear; override;
+    procedure CalcIntegral(F, M: Single);
+    procedure CalcTTL;
+    procedure CalcEquation; virtual;
+    function GetFilterDD: Integer;
+    function FilterToString: String;
+    procedure AssignFilters(Source: TCustomFloatVector);
+    procedure PaintTree(Canvas: TCanvas; X, Y: Integer);
+    procedure PaintEquation(Canvas: TCanvas; BeforeStr: String; X, Y: Integer; LineBreak: Boolean = False);
+    function CheckCircular(V: TCustomVariable): Boolean; override;
+    property Integral_dt: Single read FIntegral write SetIntegral;
+    property TTL_Count: Integer read FNP write SetNP;
+    property Format: TFloatFormat read FFormat write FFormat default ffFixed;
+    property CapacityStep;
+    property Precision: TFloatType read FPrecision write FPrecision default TypInfo.ftSingle;
+    property IsFilter: Boolean read GetIsFilter;
+    property DataF[I: Integer]: Double read GetDataF;
+    property CountF: LongWord read FCountF;
+    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
+    property VarValues: TExtended1D read FVarValues;
+    property VarValue[I: Integer]: Extended read GetVarValue write SetVarValue;
+    property MathObject: TMathObject read FMathObject;
+    property Vectors: TInputVariables read FInputVariables;
+    property IsError: Boolean read FIsError;
+    property PImValue[I: LongWord]: Pointer read GetPImValue;
+  published
+    { Published declarations }
+    property Digits: Integer read FDigits write FDigits default 3;
+    property Chebyshev;
+    property NR_Filter: TNRFilter read FNRFilter;
+    property Weight_Filter: TWeightFilter read FWeightFilter;
+    property FFT: TFFT read FFFT;
+    property Offset: Single read FOffset write SetOffset;
+    property Multiplicator: Single read FMultiplicator write SetMultiplicator;
+    property Variables: String read FVariables write SetVariables;
+    property Equation: TStrings read FLines write SetLines;
+    property MatrixOperations: Boolean read GetMxOperations write SetMxOperations;
+    property OnSetVarValues: TSetVarValues read FOnSetVarValues write FOnSetVarValues;
+    property OnGetValue: TCustomFloatVectorGetValue read FOnGetValue write FOnGetValue;
+    property OnAfterCalc: TNotifyEvent read FOnAfterCalc write FOnAfterCalc;
+  end;
+  TDoubleVector = class(TCustomFloatVector)
+  protected
+    { Protected declarations }
+    procedure SetCount(Value: LongWord); override;
+    function GetFloatValue: Extended; override;
+    procedure SetFloatValue(AValue: Extended); override;
+    function GetFloatValueAt(Row, Col: LongWord; Filtered: Boolean = False): Extended; override;
+    function GetComplexValueAt(Row, Col: LongWord): TComplex; override;
+    procedure UpdateFilter(Sender: TObject); override;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function GetDataF(I: Integer): Double; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); override;
+    procedure ReadData(Stream: TStream); override;
+    procedure Load; override;
+    procedure CalcEquation; override;
+    procedure SetSubVector(I: Integer; SubVector: TDouble1D);
+    procedure GetComplexSubVector(I: Integer; var SubVector: TComplex1D); override;
+    procedure SetComplexSubVector(I: Integer; SubVector: TComplex1D); override;
+    procedure AddSubVector(I: Integer; SubVector: TDouble1D);
+    procedure AddComplexSubVector(I: Integer; SubVector: TComplex1D);
+    procedure CopyDataFrom(Source: TCustomFloatVector); override;
+    procedure SetFloatValueAt(Row, Col: LongWord; Value: Extended); override;
+    procedure Sort; override;
+    function GetType: Integer; override;
+    function GetDisplayName: String; override;
+    procedure Clear; override;
+    procedure BeginBlock(Rows, BlockSize: LongWord); override;
+    procedure CalcMinMax; override;
+    property Data[I: LongWord]: Double read GetData write SetData; default;
+    property DataIm[I: LongWord]: Double read GetDataIm write SetDataIm;
+  end;
+  TFloatVector = class(TCustomFloatVector)
+  protected
+    { Protected declarations }
+    procedure SetCount(Value: LongWord); override;
+    function GetFloatValue: Extended; override;
+    procedure SetFloatValue(AValue: Extended); override;
+    function GetFloatValueAt(Row, Col: LongWord; Filtered: Boolean = False): Extended; override;
+    function GetComplexValueAt(Row, Col: LongWord): TComplex; override;
+    procedure UpdateFilter(Sender: TObject); override;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function GetDataF(I: Integer): Double; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); override;
+    procedure ReadData(Stream: TStream); override;
+    procedure ReadTxt(FileName: TFileName); override;
+    procedure Load; override;
+    procedure CalcEquation; override;
+    procedure SetSubVector(I: Integer; SubVector: TSingle1D);
+    procedure GetComplexSubVector(I: Integer; var SubVector: TComplex1D); override;
+    procedure SetComplexSubVector(I: Integer; SubVector: TComplex1D); override;
+    procedure AddSubVector(I: Integer; SubVector: TSingle1D);
+    procedure AddComplexSubVector(I: Integer; SubVector: TComplex1D);
+    procedure CopyDataFrom(Source: TCustomFloatVector); override;
+    procedure SetFloatValueAt(Row, Col: LongWord; Value: Extended); override;
+    procedure Sort; override;
+    function GetType: Integer; override;
+    function GetDisplayName: String; override;
+    procedure Clear; override;
+    procedure BeginBlock(Rows, BlockSize: LongWord); override;
+    procedure CalcMinMax; override;
+    property Data[I: LongWord]: Single read GetData write SetData; default;
+    property DataIm[I: LongWord]: Single read GetDataIm write SetDataIm;
+  end;
+  TGestattet = (_Original, _gefiltert);
+  TDerivation = (Nein, Erste_Derivation, Zweite_Derivation, Freq_Max_Ampl{, Erste_sDerivation, Zweite_sDerivation});
+  TMxCount = record
+    Rows, Cols: LongWord;
+    Count     : LongWord;
+  end;
+  TMxCountStr = string[24];
+  TMxCountProperty = class(TStringProperty)
+  public
+    function GetEditLimit: Integer; override;
+    function GetAttributes: TPropertyAttributes; override;
+  end;
+  TCustomMatrixGetValue = procedure (Sender: TObject; I, J: Integer; var V: TComplex) of Object;
+  TCustomMatrix = class(TDVector)
+  protected
+    procedure SetUserItemSize(User: TUsersItem; RowCount: Integer); override;
+    procedure ReadVarValues(Stream: TStream);
+    procedure WriteVarValues(Stream: TStream);
+    procedure DefineProperties(Filer: TFiler); override;
+    function GetChildOwner: TComponent; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+    class procedure BuildCategory(List: TCategoryList); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Loaded; override;
+    class function CategoryList: TCategoryList; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); override;
+    procedure ReadData(Stream: TStream); override;
+    procedure GetComplexSubMatrix(I, J: Integer; var SubMatrix: TComplex2D); virtual;
+    procedure SetComplexSubMatrix(I, J: Integer; SubMatrix: TComplex2D); virtual;
+    procedure SetComplexSubVector(I, J: Integer; SubVector: TComplex1D); virtual;
+    procedure CopyDataFrom(Source: TCustomMatrix); virtual;
+    procedure CalcEquation; virtual;
+    function IsMatrix: Boolean; override;
+    procedure UpdateUsersAt(Sender: TObject; const ARow, ACol: LongWord); override;
+    procedure UpdateUsers(Sender: TObject); override;
+    procedure PaintTree(Canvas: TCanvas; X, Y: Integer);
+    procedure PaintEquation(Canvas: TCanvas; BeforeStr: String; X, Y: Integer; LineBreak: Boolean = False);
+    function CheckCircular(V: TCustomVariable): Boolean; override;
+    property MCount: TMxCount read FMCount write SetMCount;
+    property VarValues: TExtended1D read FVarValues;
+    property VarValue[I: Integer]: Extended read GetVarValue write SetVarValue;
+    property MathObject: TMathObject read FMathObject;
+    property Vectors: TInputVariables read FInputVariables;
+    property IsError: Boolean read FIsError;
+    property PImValue[I: LongWord]: Pointer read GetPImValue;
+  published
+    property RowsCols: TMxCountStr read GetCountStr write SetCountStr;
+    property Variables: String read FVariables write SetVariables;
+    property Equation: TStrings read FLines write SetLines;
+    property OnSetVarValues: TSetVarValues read FOnSetVarValues write FOnSetVarValues;
+    property OnGetValue: TCustomMatrixGetValue read FOnGetValue write FOnGetValue;
+    property OnAfterCalc: TNotifyEvent read FOnAfterCalc write FOnAfterCalc;
+  end;
+  TFloatMatrix = class(TCustomMatrix)
+  protected
+    { Protected declarations }
+    function GetCount: LongWord; override;
+    procedure SetCount(Value: LongWord); override;
+    procedure SetMCount(AValue: TMxCount); override;
+    function GetFloatValue: Extended; override;
+    procedure SetFloatValue(AValue: Extended); override;
+    function GetFloatValueAt(Row, Col: LongWord; Filtered: Boolean = False): Extended; override;
+    function GetComplexValueAt(Row, Col: LongWord): TComplex; override;
+    procedure UpDateUserItem(User: TUsersItem; Row, Col: Integer); override;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure WriteData(Stream: TStream); override;
+    procedure ReadData(Stream: TStream); override;
+    function GetType: Integer; override;
+    function GetDisplayName: String; override;
+    function GetUserItemClass: TUsersItemClass; override;
+    procedure Clear; override;
+    procedure Load; override;
+    procedure CalcEquation; override;
+    procedure SetSubMatrix(I, J: Integer; SubMatrix: TSingle2D);
+    procedure GetComplexSubMatrix(I, J: Integer; var SubMatrix: TComplex2D); override;
+    procedure SetComplexSubMatrix(I, J: Integer; SubMatrix: TComplex2D); override;
+    procedure SetComplexSubVector(I, J: Integer; SubVector: TComplex1D); override;
+    procedure AddSubMatrix(I, J: Integer; SubMatrix: TSingle2D);
+    procedure AddComplexSubMatrix(I, J: Integer; SubMatrix: TComplex2D);
+    procedure CopyDataFrom(Source: TCustomMatrix); override;
+    procedure BeginBlock(Rows, Cols: LongWord);
+    procedure SetRows(Rows: LongWord; IsEnd: Boolean = False);
+    procedure BeginCircular(Rows, Cols: LongWord);
+    procedure CalcMinMax; override;
+    property Data[I, J: LongWord]: Single read GetData write SetData; default;
+    property DataIm[I, J: LongWord]: Single read GetDataIm write SetDataIm;
+  published
+    property CapacityStep;
+  end;
+  TVariables = class(TContainer)
+  protected
+    { Protected declarations }
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    function GetChildOwner: TComponent; override;
+    procedure Loaded; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Clear;
+    procedure ClearData;
+    procedure WriteData(FS: TFileStream);
+    procedure ReadData(FS: TFileStream; Ver: Integer);
+    procedure PostReadData;
+    procedure Write(Writer: TWriter; FS: TStream); virtual;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); virtual;
+    procedure PostRead(Frame: TBaseFrame); override;
+    procedure CalcEquation(Vector: TCustomVariable);
+    function Add(Item: Pointer): Integer;
+    function IndexOf(Item: Pointer): Integer;
+    function Find(Name: String): TCustomVariable;
+    procedure GetComponentNames(const Path: String; TypeData: PTypeData; Proc: TGetStrProc); override;
+    function GetComponent(const AName: string): TComponent; override;
+    function Remove(Item: Pointer): Integer;
+    procedure WriteOffsetY(Writer: TWriter);
+    procedure WriteEnabled(Writer: TWriter);
+    class procedure ReadEnabled(Reader: TReader; AVariables: TVariables);
+    property Variable[I: Integer]: TCustomVariable read GetVariable; default;
+    property Count: Integer read GetCount;
+  published
+    property Items: TList read FVarList stored False;
+    property LicenceComponent: TLicenceComponent read FLicenceComponent write FLicenceComponent;
+  end;
+
+function MxCount(Rows, Cols: LongWord): TMxCount;
+function BooleanToStr(Value: Boolean): String;
+function StrToBoolean(Value: String): Boolean;
+function CheckHPStr(S: String): String;
+function UnitCheck(S: String): String;
+function FloatToStrN(const D: Double; const Digits: Byte): String;
+function DoubleToStr(const D: Double; const Digits: Integer): String;
+function StrToDouble(const S: String): Double;
+function StrToDoubleDef(const S: String; Def: Double = 0.0): Double;
+function ClearSpace(S: String): String;
+function StudentD(N: Integer; StatP: TStatP): Double;
+function Fischer2(N: Integer; StatP: TStatP): Double;
+
+const
+  Precisions: array[TFloatType] of Integer = (7, 15, 18, 18, 18);
+  TypFiltraStr: array[TTypFiltra] of String = ('No', 'LP', 'HP', 'BP', 'BS', 'D');
+  TypChebyshevStr: array[TTypChebyshev] of String = ('No', 'LP', 'HP', 'BP', 'BS');

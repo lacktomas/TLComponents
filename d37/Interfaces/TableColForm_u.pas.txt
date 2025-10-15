@@ -1,0 +1,58 @@
+unit TableColForm_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, CollectionForm_u, StdCtrls, ExtCtrls, ComCtrls, ToolWin,
+  DB, system.UITypes, Vcl.Menus, Vcl.Buttons, LColorListView_u, Variables_u;
+
+type
+  TTableColItem = class(TInfoCollectionItem)
+  protected
+    { Protected declarations }
+    function GetDisplayName: string; override;
+  public
+    { Public declarations }
+    FieldDataType: TFieldType;
+    EId          : Integer;
+    constructor Create(Collection: TCollection); override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    property Visible: Boolean read FVisible write SetVisible;
+  published
+    { Published declarations }
+    property Caption: String read FCaption write SetCaption;
+    property PhysicalUnit: String read FUnit write SetUnit;
+    property Width: Single read FWidth write SetWidth;
+    property Color: TColor read FColor write SetColor;
+    property Linie_Width: Integer read FLineWidth write SetLineWidth;
+    property Vector: TDVector read FVariable write SetVariable;
+    property Filtered: Boolean read FFiltered write FFiltered;
+    property FirstRow: Integer read FFirstRow write SetFirstRow;
+    property RowStep: Integer read FRowStep write SetRowStep;
+    property Column: Cardinal read FColumn write SetColumn;
+  end;
+  TTableColCollection = class(TInfoCollection)
+  protected
+    function GetFormClass: TFormClass; override;
+  public
+    constructor Create(AOwner: TPersistent);
+    function Add: TTableColItem;
+    property Items[Index: Integer]: TTableColItem read GetItem write SetItem; default;
+  end;
+  TTableColForm = class(TCollectionForm)
+    procedure ListView1AdvancedCustomDrawSubItem(Sender: TCustomListView; Item: TListItem; SubItem: Integer;
+      State: TCustomDrawState; Stage: TCustomDrawStage; var DefaultDraw: Boolean);
+    procedure ListView1Change(Sender: TObject; Item: TListItem; Change: TItemChange);
+    procedure ListView1AdvancedCustomDrawItem(Sender: TCustomListView; Item: TListItem; State: TCustomDrawState;
+      Stage: TCustomDrawStage; var DefaultDraw: Boolean);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    procedure RefreshCaption; override;
+    procedure BuildItem(Item: TListItem; CollItem: TCollectionItem); override;
+  end;
+

@@ -1,0 +1,101 @@
+unit ListEditor;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  ComCtrls, StdCtrls, ExtCtrls, DesignIntf, Buttons, ImgList, Info_u,
+  ToolWin, TypInfo, TLComponentsDM, DsgnForms_u, DesignEditors, BaseFrame_u;
+
+type
+  TContainer = class(TInfoComponent)
+  public
+    { Public declarations }
+    procedure PostRead(Frame: TBaseFrame); virtual;
+    destructor Destroy; override;
+    procedure FreeNotif(AComponent: TComponent);
+    function FindComponent(const AName: string): TComponent;
+    function GetComponentName(const Path: String; Component: TComponent): string;
+    function GetComponent(const AName: string): TComponent; virtual;
+    procedure GetComponentNames(const Path: String; TypeData: PTypeData; Proc: TGetStrProc); virtual;
+  end;
+  TListComponent = class(TInfoComponent)
+  protected
+    { Protected declarations }
+    FList       : TList;
+    FDescription: String;
+    procedure IndexChanged; virtual;
+    procedure PostRead(Frame: TBaseFrame); virtual;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure FreeNotif(AComponent: TComponent);
+    function GetNamePath: String; override;
+    function GetComponent(const AName: string): TComponent;
+    procedure WriteSSC(Writer: TWriter; FS: TStream); virtual;
+    class procedure ReadSSC(V: TListComponent; Reader: TReader; FS: TStream; Ver: Integer); virtual;
+    property List: TList read FList write SetList;
+    property Index: Integer read GetIndex write SetIndex;
+    property Description: String read FDescription write FDescription;
+  end;
+  TListProperty = class(TPropertyEditor)
+  protected
+    { Protected declarations }
+    function GetFormClass: TFormClass; virtual;
+  public
+    procedure Edit; override;
+    function  GetValue: string; override;
+    function  GetAttributes: TPropertyAttributes; override;
+  end;
+  TListEditorForm = class(TDsgnForm)
+    ListView1: TListView;
+    ToolBar1: TToolBar;
+    AddBtn: TToolButton;
+    DeleteBtn: TToolButton;
+    ToolButton3: TToolButton;
+    MoveUpBtn: TToolButton;
+    MoveDownBtn: TToolButton;
+    ToolButton1: TToolButton;
+    SetupBtn: TToolButton;
+    procedure AddBtnClick(Sender: TObject);
+    procedure DeleteBtnClick(Sender: TObject);
+    procedure MoveUpBtnClick(Sender: TObject);
+    procedure MoveDownBtnClick(Sender: TObject);
+    procedure ListView1StartDrag(Sender: TObject;
+      var DragObject: TDragObject);
+    procedure ListView1DragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure ListView1DragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure ListView1SelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure FormDestroy(Sender: TObject);
+    procedure ListView1KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure ListView1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ListView1DblClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ListView1ColumnClick(Sender: TObject; Column: TListColumn);
+    procedure ListView1Compare(Sender: TObject; Item1, Item2: TListItem;
+      Data: Integer; var Compare: Integer);
+  protected
+    { Protected declarations }
+    PropName  : String;
+    ShortIndex: Integer;
+    procedure SetEditObject(AnObject: TObject); override;
+    function UniqueName(const BaseName: string): string;
+    procedure NewItem(NewClass: TComponentClass); virtual;
+    function GetItemClass: TComponentClass; virtual;
+    function DefaultShortIndex: Integer; virtual;
+    procedure ItemsModified(const Designer: IDesigner); override;
+  public
+    { Public declarations }
+    procedure RefreshCaption; override;
+    procedure Modify(AnObject: TPersistent{; Actn: TModifyActn}); override;
+    procedure RemoveNotification(AnObject: TPersistent); override;
+    procedure BuildItem(Item: TListItem; Component: TListComponent); virtual;
+    procedure InsertItem(Component: TListComponent);
+    property List: TList read FList;
+  end;

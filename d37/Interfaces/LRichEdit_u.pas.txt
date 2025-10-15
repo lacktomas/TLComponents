@@ -1,0 +1,71 @@
+unit LRichEdit_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, StdCtrls, ComCtrls, Forms, RichEdit,
+  System.Types, System.UITypes, DesignIntf, DesignEditors, LicenceComponent_u, Info_u;
+
+type
+  TBracketsColors = class(TInfoPersistent)
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Changed;
+    property Colors[I: Integer]: TColor read GetColor write SetColor; default;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    property Level0: TColor read FColors[0] write SetColor0;
+    property Level1: TColor read FColors[1] write SetColor1;
+    property Level2: TColor read FColors[2] write SetColor2;
+    property Level3: TColor read FColors[3] write SetColor3;
+    property Level4: TColor read FColors[4] write SetColor4;
+    property Level5: TColor read FColors[5] write SetColor5;
+    property Level6: TColor read FColors[6] write SetColor6;
+  end;
+  TLMathMemo = class(TMemo)
+  protected
+    procedure Change; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+  published
+    property BracketsColors: TBracketsColors read FBracketsColors write SetBracketsColors;
+  end;
+  TLRichEdit = class(TRichEdit)
+  protected
+    procedure DefineProperties(Filer: TFiler); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure CreateWnd; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Loaded; override;
+    procedure CopyToRichEdit(Dest: TLRichEdit);
+    procedure CopyFromRichEdit(Source: TLRichEdit);
+    function CopyToString: AnsiString;
+    procedure CopyFromString(S: AnsiString);
+    procedure CopyToStream(Stream: TStream);
+    procedure CopyFromStream(Stream: TStream);
+  published
+    property Lines stored False;
+    property LicenceComponent: TLicenceComponent read FLicenceComponent write SetLicenceComponent;
+  end;
+  TLRichEditStringListProperty = class(TPropertyEditor)
+  public
+    procedure Edit; override;
+    function GetAttributes: TPropertyAttributes; override;
+    function GetValue: string; override;
+  end;
+  TLRichEditEditor = class(TDefaultEditor)
+  protected
+    procedure EditProperty(const Prop: IProperty; var Continue: Boolean); override;
+  public
+    procedure ExecuteVerb(Index: Integer); override;
+    function  GetVerb(Index: Integer): string; override;
+    function  GetVerbCount: Integer; override;
+  end;

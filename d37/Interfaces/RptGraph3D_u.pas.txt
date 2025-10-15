@@ -1,0 +1,113 @@
+unit RptGraph3D_u;
+
+interface
+
+uses
+  WinApi.Windows, Classes, Graphics, Controls, DesignIntf, LRpt_u, LRptGraph_u, Protokol_u, WinApi.OpenGL, OpenGL_u,
+  ExtCtrls, Forms, Info_u, System.UITypes, PropEditors_u, GrafSpl_u, System.Types, CollectionForm_u, Math_u;
+
+const
+  CLightAmbient  : GLfloat4 = (0.2, 0.2, 0.2, 0.0);
+  CLightDiffuse  : GLfloat4 = (0.4, 0.4, 0.4, 0.0);
+  CLightSpecular : GLfloat4 = (0.5, 0.5, 0.5, 0.1);
+  CLightPosition : GLfloat4 = (0.0, 500.0, 500.0, 0.0);
+
+type
+  TRender = record
+    MemDC      : HDC;
+    glRC       : HGLRC;
+    Bm, BmOld  : HBITMAP;
+    bmSize     : TSize;
+    Pal, PalOld: HPALETTE;
+    biInfo     : array[0..SizeOf(BITMAPINFOHEADER) + 256 * SizeOf(RGBQUAD) - 1] of Byte;
+    lpBits     : Pointer;
+  end;
+  TColorPoint = record
+    X: Single;
+    C: TColor;
+  end;
+  TCRpt3DGraph = class;
+  TOnBuildGL = procedure(Sender: TObject; M: Single) of Object;
+  TPlane = class(TInfoPersistent)
+  public
+    constructor Create(AGraph: TCRpt3DGraph);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+  published
+    property Visible: Boolean read FVisible write SetVisible;
+    property Color: TColor read FColor write SetColor;
+    property Alpha: Single read FAlpha write SetAlpha;
+    property Brush_Color: TColor read FBrushColor write SetBrushColor;
+    property Points_Color: TColor read FPntColor write SetPntColor;
+    property Position: Single read FPosition write SetPosition;
+  end;
+  TCRpt3DGraph = class(TLRptComponent)
+  protected
+    M: Single;
+    procedure BuildGL(glRC: HGLRC); virtual;
+    class procedure BuildCategory(List: TCategoryList); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+    procedure MouseMove(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; P: TPoint); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    class function CategoryList: TCategoryList; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter); override;
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+    property xAngle: Single read xRotate write SetxRotate;
+    property yAngle: Single read yRotate write SetyRotate;
+    property zAngle: Single read zRotate write SetzRotate;
+    property xTrans: Single read TransX write SetTransX;
+    property yTrans: Single read TransY write SetTransY;
+    property zTrans: Single read TransZ write SetTransZ;
+    property OnBuildGL: TOnBuildGL read FOnBuildGL write FOnBuildGL;
+  published
+    property Background_Farbe: TColor read FGrundFarbe write SetGrundFarbe;
+    property Frame_Color: TColor read GetFrameColor write SetFrameColor;
+    property Frame_Width: Byte read GetFrameWidth write SetFrameWidth;
+    property Rotate: String read GetRotate write SetRotate;
+    property Translate: String read GetTranslate write SetTranslate;
+    property TranslateStep: Single read TransStep write SetTransStep;
+    property Scale: Single read FScale write SetScale;
+    property LightAmbient: String read GetLightAmbient write SetLightAmbient;
+    property LightDiffuse: String read GetLightDiffuse write SetLightDiffuse;
+    property LightSpecular: String read GetLightSpecular write SetLightSpecular;
+    property LightPosition: String read GetLightPosition write SetLightPosition;
+    property x_Min: Single read FXMin write SetXMin;
+    property x_Max: Single read FXMax write SetXMax;
+    property x_StepTicks: Single read FXTicks write SetXTicks;
+    property x_StepLabels: Single read FXLabels write SetXLabels;
+    property x_Caption: String read FXCaption write SetXCaption;
+    property y_Min: Single read FYMin write SetYMin;
+    property y_Max: Single read FYMax write SetYMax;
+    property y_StepTicks: Single read FYTicks write SetYTicks;
+    property y_StepLabels: Single read FYLabels write SetYLabels;
+    property y_Caption: String read FYCaption write SetYCaption;
+    property z_Min: Single read FZMin write SetZMin;
+    property z_Max: Single read FZMax write SetZMax;
+    property z_StepTicks: Single read FZTicks write SetZTicks;
+    property z_StepLabels: Single read FZLabels write SetZLabels;
+    property z_Caption: String read FZCaption write SetZCaption;
+    property xy_Plane: TEbene read FXYPlane write SetXYPlane;
+    property yz_Plane: TEbene read FYZPlane write SetYZPlane;
+    property zx_Plane: TEbene read FZXPlane write SetZXPlane;
+    property Color_range: Boolean read FColorRange write SetColorRange;
+  end;
+  TLRpt3DGraph = class(TCRpt3DGraph)
+  protected
+    procedure BuildGL(glRC: HGLRC); override;
+  published
+    property Width;
+    property Height;
+    property Rotate;
+    property OnBuildGL;
+  end;
+
+procedure ClearColor3(Color: TColor);
+procedure Color3(Color: TColor);
+procedure ScaleColor(Face, Name: GLenum; X, Alpha: Single);
+procedure Material3(Face, Name: GLenum; Color: TColor; Alpha: Single);

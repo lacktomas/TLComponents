@@ -1,0 +1,61 @@
+unit LRtf_u;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls,
+  LRichEdit_u, DesignIntf, DesignEditors, System.Types, System.UITypes, Info_U;
+
+type
+  TTransparentRichEdit = class (TRichEdit)
+  protected
+    procedure CreateWnd; override;
+  end;
+  TLRtfStringListProperty = class(TPropertyEditor)
+  public
+    procedure Edit; override;
+    function GetAttributes: TPropertyAttributes; override;
+    function GetValue: string; override;
+  end;
+  TRtfOrientation = (ro0, ro90, ro270, ro180);
+  TLRtf = class(TInfoPersistent)
+  public
+    constructor Create(AParent: TWinControl);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure SetRect(ALeft, ATop, ARight, ABottom: Integer); overload;
+    procedure SetRect(ARect: TRect); overload;
+    procedure SetParam(ALeft, ATop, AWidth, AHeight: Integer);
+    procedure PaintToRect(DC: HDC; ARect: TRect);
+    procedure Paint(DC: HDC);
+    procedure PaintLandscape(DC: HDC; GW, GH: Integer);
+    function CalcHeight(DC : HDC): Integer;
+    procedure CopyToRichEdit(Dest: TRichEdit);
+    procedure CopyFromRichEdit(Source: TRichEdit);
+    procedure CopyToFileStream(FS: TStream);
+    procedure CopyFromFileStream(FS: TStream);
+    class procedure RichEditCopyToString(RichEdit: TRichEdit; var S: AnsiString);
+    class procedure RichEditCopyFromString(RichEdit: TRichEdit; S: AnsiString);
+    class procedure RichEditCopyToStream(RichEdit: TRichEdit; Stream: TStream);
+    class procedure RichEditCopyFromStream(RichEdit: TRichEdit; Stream: TStream);
+    property Parent: TWinControl read FParent;
+    property R: TRect read GetRect write SetFRect;
+    property RichEdit: TTransparentRichEdit read FRichEdit;
+    property TextWidth: Single read FTxtWidth;
+    property TextHeight: Single read FTxtHeight;
+    property PageHeight: Integer read FPageHeight write SetPageHeight;
+    property OnModified: TNotifyEvent read FOnModified write FOnModified;
+  published
+    property Orientation: TRtfOrientation read FOrientation write SetOrientation;
+    property Color: TColor read FColor write SetColor;
+    property Left: Integer read FLeft write SetLeft;
+    property Top : Integer read FTop write SetTop;
+    property Width: Integer read FWidth write SetWidth;
+    property Height: Integer read FHeight write SetHeight;
+    property Text: TStrings read GetText write SetText stored False;
+  end;
+
+var
+  BmpPrint: Boolean = False;

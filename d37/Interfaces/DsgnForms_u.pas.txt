@@ -1,0 +1,60 @@
+unit DsgnForms_u;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, DesignIntf, FrmDsgn_u, TypInfo, ComCtrls, PropTreeView_u,
+  System.Types, System.Generics.Collections;
+
+type
+  TDsgnForm = class(TForm, IDesignNotification)
+  protected
+    FPropView: TPropertyTreeView;
+    procedure SetEditObject(AnObject: TObject); overload; virtual;
+    procedure SetEditObject(AnObject: TObjectList<TObject>); overload; virtual;
+    procedure ItemDeleted(const ADesigner: IDesigner; Item: TPersistent); virtual;
+    procedure ItemInserted(const ADesigner: IDesigner; Item: TPersistent); virtual;
+    procedure SelectionChanged(const ADesigner: IDesigner; const ASelection: IDesignerSelections); virtual;
+    procedure DesignerOpened(const Designer: IDesigner; AResurrecting: Boolean); virtual;
+    procedure DesignerClosed(const Designer: IDesigner; AGoingDormant: Boolean); virtual;
+    procedure ItemsModified(const Designer: IDesigner); virtual;
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure RefreshCaption; virtual;
+    procedure Modify(AnObject: TPersistent); virtual;
+    procedure RemoveNotification(AnObject: TPersistent); virtual;
+    procedure UpdateForm; virtual;
+    function GetObject(const Name: string): TPersistent; virtual;
+    function GetObjectName(Instance: TPersistent): string; virtual;
+    procedure GetObjectNames(TypeData: PTypeData; Proc: TGetStrProc); virtual;
+    function GetComponent(const Name: string): TComponent; virtual;
+    function GetComponentName(Component: TComponent): string; virtual;
+    procedure GetComponentNames(TypeData: PTypeData; Proc: TGetStrProc); virtual;
+    property FrmDsgn: TFrmDsgn read FFrmDsgn;
+    property IFrmDsgn: IDesigner read FIFrmDsgn write FIFrmDsgn;
+    property OwnerObject: TPersistent read FOwnerObject write FOwnerObject;
+    property EditObject: TObject read FEditObject write SetEditObject;
+    property EditList: TObjectList<TObject> read FEditList write SetEditObject;
+    property PropertyTreeView: TPropertyTreeView read FPropView;
+  end;
+  TDsgnForms = class(TObject)
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+    procedure Close;
+    procedure Add(const DsgnForm: TDsgnForm);
+    procedure Remove(const DsgnForm: TDsgnForm);
+    function  Find(const AnObject: TObject): TDsgnForm;
+    procedure Modify(const AnObject: TPersistent);
+    procedure RefreshCaption(const AnObject: TPersistent);
+    procedure Notification(const AnObject: TPersistent);
+    property Count: Integer read GetCount;
+  end;
+
+var
+  DsgnForms: TDsgnForms;
+

@@ -1,0 +1,432 @@
+unit LRpt_u;
+
+interface
+
+uses
+  SysUtils, WinTypes, Messages, Classes, vcl.Graphics, Vcl.Controls, Clipbrd, Info_u, System.TypInfo,
+  Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Printers, System.Types, System.UITypes, ListEditor, DesignIntf,
+  Vcl.ComCtrls, LRtf_u, LicenceComponent_u, DesignEditors;
+
+const
+  crZoom  = 2;
+  crCross = 3;
+
+type
+  TFormatOrient   = (foPortrait, foLandscape);
+  TFormatSize     = (fsUser, fsA0, fsA1, fsA2, fsA3, fsA4, fsA5);
+  TStatus         = (stNormal, stZoom, stMove, stExport, stXInterval, stYInterval);
+  TShadowWidth    = 0..100;
+  TZoomAction     = (pzZoomIn, pzZoomOut, pzFullPage, pzNoZoom);
+  TPaintEvent     = procedure (Sender: TObject; Canvas: TCanvas; R: TRect; Chapter, Page: Integer) of object;
+  TRptComponentPaintEvent = procedure(Sender: TObject; Canvas: TCanvas; var PaintInfo: TPaintStruct) of Object;
+  TZoomEvent      = procedure (Sender: TObject; ZoomAction: TZoomAction) of object;
+  TPositionEvent  = procedure (Sender: TObject; P: TPoint) of object;
+  TLRptComponent  = class;
+  TSelectEvent    = procedure (Sender: TObject; Component: TLRptComponent; var IsSelect: Boolean) of Object;
+  TItemMouseDown  = procedure (Sender: TObject; RptItem: TLRptComponent;
+                                Button: TMouseButton; Shift: TShiftState; P: TPoint) of object;
+  TIntervalEvent  = procedure (Sender: TObject; R: TRect) of object;
+  TPrintArray = array of record Chapter, Page: Integer; FormatOrient: TFormatOrient end;
+  TLRpt = class;
+  TLRptPen = class(TInfoPersistent)
+  protected
+    FColor : TColor;
+    FWidth : Integer;
+    procedure DoChange;
+  public
+    constructor Create;
+    procedure AssignPen(Pen: TPen);
+    procedure AssignFromPen(Pen: TPen);
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    class procedure Read(RptPen: TLRptPen; Reader: TReader; FS: TStream; Ver: Integer); overload; virtual;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    property Color: TColor read FColor write SetColor default clBlack;
+    property Width: Integer read FWidth write SetWidth default 0;
+  end;
+  TLRptComponents = class;
+  TLRptComponentTyp = (rptctNone, rptctGraph, rptctText, rptctRtf, rptctShape, rptctImage, rptctGraph3D,
+                       rptctTable, rptctPaintBox);
+  TLRptComponent = class(TInfoComponent)
+  protected
+    { Protected declarations }
+    FLRptComponents         : TLRptComponents;
+    FLRptComponentTyp       : TLRptComponentTyp;
+    FVisibleRepaint         : Boolean;
+    FReport                 : TLRpt;
+    FLeft, FTop             : Single;
+    FWidth, FHeight         : Single;
+    FVisible                : Boolean;
+    FChapter, FPage, FToPage: Integer;
+    SelectBool              : Boolean;
+    RectG                   : TRect;
+    RectLT, RectT, RectRT   : TRect;
+    RectL, RectR            : TRect;
+    RectLB, RectB, RectRB   : TRect;
+    FOnModified             : TNotifyEvent;
+    FBeforePaint            : TRptComponentPaintEvent;
+    FOutPaint               : TRptComponentPaintEvent;
+    procedure SetReport(Value: TLRpt); virtual;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure Move(DC: HDC; ARect: TRect; P: TPoint); virtual;
+    function Select(DC: HDC; P: TPoint; Sel: Boolean): Boolean; virtual;
+    function HitTest(P: TPoint): Integer; virtual;
+    procedure Invert(DC : HDC); virtual;
+    function CalcRects(DC : HDC): TPoint; virtual;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; P: TPoint); virtual;
+    procedure MouseMove(Button: TMouseButton; Shift: TShiftState; P: TPoint); virtual;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; P: TPoint); virtual;
+    procedure WriteMethod(Writer: TWriter; M: TMethod);
+    function ReadMethod(Reader: TReader): TMethod;
+  public
+    IsPaint : Boolean;
+    IsNoEdit: Boolean;
+    constructor Create(AOwner: TComponent); override;
+    function HasParent: Boolean; override;
+    function GetParentComponent: TComponent; override;
+    procedure SetParentComponent(AParent: TComponent); override;
+    procedure Write(Writer: TWriter); virtual;
+    procedure Read(Reader: TReader; Ver: Integer); virtual;
+    procedure Assign(Source: TPersistent); override;
+    procedure SetSize(W, H: Single);
+    procedure PaintIn(Canvas: TCanvas; Page: Integer; var PaintInfo: TPaintStruct); virtual;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); virtual;
+    procedure OutPaint(Canvas: TCanvas; var PaintInfo: TPaintStruct); virtual;
+    procedure Refresh(Sender: TObject);
+    procedure RefreshCR(Sender: TObject);
+    procedure RefreshClientRect(IsErase: Boolean = True);
+    procedure RefreshClientRectOnly(IsErase: Boolean = True);
+    procedure RefreshClientRectD(DL, DT, DR, DB: Integer; IsErase: Boolean = True);
+    procedure DoModified;
+    property Rpt: TLRpt read FReport;
+    property Typ: TLRptComponentTyp read FLRptComponentTyp;
+    property ClientRect: TRect read GetClientRect write SetClientRect;
+    property Width: Single read FWidth write SetWidth;
+    property Height: Single read FHeight write SetHeight;
+    property IsSelect: Boolean read SelectBool;
+    property VisibleRepaint: Boolean read FVisibleRepaint write FVisibleRepaint;
+    property Showing: Boolean read GetShowing;
+    property RptComponents: TLRptComponents read FLRptComponents;
+    property OnModified: TNotifyEvent read FOnModified write FOnModified;
+  published
+    { Published declarations }
+    property LeftPosition: Single read FLeft write SetLeft;
+    property TopPosition: Single read FTop write SetTop;
+    property Visible: Boolean read FVisible write SetVisible default True;
+    property Chapter: Integer read FChapter write SetChapter default 1;
+    property Page: Integer read FPage write SetPage default 1;
+    property ToPage: Integer read FToPage write SetToPage default 1;
+    property OnBeforePaint: TRptComponentPaintEvent read FBeforePaint write FBeforePaint;
+    property OnOutPaint: TRptComponentPaintEvent read FOutPaint write FOutPaint;
+  end;
+  TMyMetafile = class(TMetafile)
+  public
+    procedure SaveToFile(const Filename: String); override;
+    procedure Draw(ACanvas: TCanvas; const Rect: TRect); override;
+  end;
+  TMetafileProperty = class(TStringProperty)
+  public
+    function GetAttributes: TPropertyAttributes; override;
+    procedure Edit; override;
+  end;
+  TLRptComponentClass = class of TLRptComponent;
+  TLRptPaintBox = class(TLRptComponent)
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter); override;
+    procedure Read(Reader: TReader; Ver: Integer); override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    procedure Paint(DC: HDC; Page: Integer; var PaintInfo: TPaintStruct); override;
+  published
+    property Width;
+    property Height;
+    property Control: TInfoCustomControl read FControl write SetControl;
+    property Metafile: TFileName read FMetafile write SetMetafile;
+  end;
+  TPostCreateComponent = function(Sender: TObject; RptComponent: TLRptComponent): Boolean of Object;
+  TLRptFrame = class(TInfoPersistent)
+  public
+    constructor Create(ALRpt: TLRpt);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Paint(Canvas: TCanvas; FormatOrient: TFormatOrient);
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    property LeftPosition: Integer read FLeft write SetLeft default 100;
+    property TopPosition: Integer read FTop write SetTop default 100;
+    property Width: Integer read FWidth write SetWidth default 1900;
+    property Height: Integer read FHeight write SetHeight default 2770;
+    property Visible: Boolean read FVisible write SetVisible default True;
+    property Pen: TLRptPen read FPen write SetPen;
+  end;
+  TLRptPageNr = class(TInfoPersistent)
+  public
+    constructor Create(ALRpt: TLRpt);
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Write(Writer: TWriter; FS: TStream); override;
+    procedure Read(Reader: TReader; FS: TStream; Ver: Integer); override;
+    procedure Paint(Canvas: TCanvas; FormatOrient: TFormatOrient; Chapter, Page: Integer);
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  published
+    property LeftPosition: Integer read FLeft write SetLeft;
+    property TopPosition: Integer read FTop write SetTop;
+    property Visible: Boolean read FVisible write SetVisible default True;
+    property Font: TFont read FFont write SetFont;
+  end;
+  TLRptChapters = class;
+  TLRptChapter = class(TInfoComponent)
+  protected
+    { Protected declarations }
+    procedure DefineProperties(Filer: TFiler); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure AssignNoName(Source: TPersistent);
+    function HasParent: Boolean; override;
+    function GetParentComponent: TComponent; override;
+    procedure SetParentComponent(AParent: TComponent); override;
+    procedure Paint(Canvas: TCanvas; FormatOrient: TFormatOrient);
+  published
+    property Pages: Integer read FPages write SetPages;
+    property FormatOrientation: TFormatOrient read FFormatOrient write SetFormatOrient;// default foPortrait;
+    property Header: TLRtf read FHeader write SetHeader;
+    property HeaderLine: TPen read FHeaderLine write SetHeaderLine;
+    property Footer: TLRtf read FFooter write SetFooter;
+    property FooterLine: TPen read FFooterLine write SetFooterLine;
+  end;
+  TLRptChapters = class(TInfoComponent)
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Clear;
+    function GetChildOwner: TComponent; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+    function UniqueName: string;
+    property Chapter[I: Integer]: TLRptChapter read GetChapter; default;
+    property Count: Integer read GetCount;
+  published
+    property AInt: Integer read Fint write FInt;
+  end;
+  TLRptComponents = class(TInfoComponent)
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Assign(Source: TPersistent); override;
+    procedure Clear;
+    function GetChildOwner: TComponent; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+    function UniqueName(const BaseName: string): string;
+    property RptComponent[I: Integer]: TLRptComponent read GetRptComponent; default;
+    property Count: Integer read GetCount;
+  end;
+  TLRpt = class(TScrollingWinControl)
+  protected
+    { Protected declarations }
+    A              : Byte;
+    MA             : array[0..10] of Real;
+    XL, YT         : Double;
+    WE,
+    VE             : TSize;
+    WOX, WOY,
+    VOX, VOY       : LongInt;
+    OldVExt,
+    OldWExt,
+    OldVOrg,
+    OldWOrg        : TSize;
+    OldMode        : Integer;
+    PDC            : HDC;
+    L_ButtonDown   : Boolean;
+    X1, Y1, X2, Y2 : Integer;
+    X0, Y0         : Integer;
+    WL, WR, HT, HB : Integer;
+    Brush, OldBrush: HBrush;
+    Pen, OldPen    : HPen;
+    FPX, FPY       : Single;
+    FPX2, FPY2     : Single;
+    FAbort, InRoll : Boolean;
+    procedure WMPaint(var Msg: TWMPaint); message wm_Paint;
+    procedure WMHScroll(var Msg: TWMHScroll); message wm_HScroll;
+    procedure WMVScroll(var Msg: TWMVScroll); message wm_VScroll;
+    procedure WMMouseWheel(var Msg: TWMMouseWheel); message wm_MouseWheel;
+    procedure WMSetCursor(var Msg: TWMSetCursor); message wm_SetCursor;
+    procedure WMGetDlgCode(var Msg: TWMGetDlgCode); message wm_GetDlgCode;
+    procedure WMSize(var Msg: TWMSize); message wm_Size;
+    procedure CMMouseEnter(var Msg: TMessage); message cm_MouseEnter;
+    procedure CWMouseLeave(var Msg: TMessage); message cm_MouseLeave;
+    procedure Paint(DC: HDC; var PaintInfo: TPaintStruct; AChapter, APage: Integer); dynamic;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+    function GetChildOwner: TComponent; override;
+    procedure Loaded; override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
+    procedure HScroll(ScrollCode: TScrollCode; var ScrollPos: Integer); dynamic;
+    procedure VScroll(ScrollCode: TScrollCode; var ScrollPos: Integer); dynamic;
+    procedure Start;
+    procedure Show;
+    procedure Finish(Button: TMouseButton; Shift: TShiftState);
+    procedure UpdateFormat;
+    procedure Change(Sender: TObject);
+  public
+    { Public declarations }
+    constructor Create(AOwner: TComponent); override;
+    procedure CreateHandle; override;
+    destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
+    class procedure BuildCategory(List: TCategoryList);
+    class function CategoryList: TCategoryList;
+    procedure Display(DC : HDC; XPos, YPos: LongInt);
+    procedure OldDisplay(DC : HDC);
+    function GetFormatSize(FormatOrientation: TFormatOrient): TSize;
+    procedure DtoL(X, Y: LongInt; var Xr, Yr: Double);
+    procedure Point_DtoL(var P: TPoint);
+    procedure Rect_DtoL(var R: TRect);
+    procedure LtoD(Xr, Yr: Double; var X, Y: LongInt);
+    procedure Point_LtoD(var P: TPoint);
+    procedure Rect_LtoD(var R: TRect);
+    function GetZoomRect(ARpt: TLRpt): TRect;
+    procedure WriteZoom(Writer: TWriter);
+    procedure ReadZoom(Reader: TReader);
+    procedure ApplyReadZoom;
+    procedure ZoomRect(PX, PY, PX2, PY2: Single; IsMaxZoom: Boolean);
+    procedure ExportRect(DC: HDC; R: TRect; Shift: TShiftState; Page: Integer);
+    function  Zoom(R: TRect; MM: Boolean): Boolean;
+    function  ZoomRoll(R: TRect; MM: Boolean): Boolean;
+    procedure ZoomIn;
+    procedure ZoomOut;
+    procedure FullPage(IsRepaint: Boolean);
+    procedure CallPaint;
+    procedure MoveTopComponent(RptComponent: TLRptComponent);
+    procedure MoveBottomComponent(RptComponent: TLRptComponent);
+    procedure MoveUpComponent(RptComponent: TLRptComponent);
+    procedure MoveDownComponent(RptComponent: TLRptComponent);
+    procedure RefreshComponent(RptComponent: TLRptComponent; IsErase: Boolean);
+    procedure RefreshComponentCROnly(RptComponent: TLRptComponent; IsErase: Boolean);
+    procedure RefreshComponentD(RptComponent: TLRptComponent; DL, DT, DR, DB: Integer; IsErase: Boolean);
+    procedure RptRefresh;
+    procedure DeleteComponent(RptComponent: TLRptComponent);
+    procedure UnselectComponent;
+    procedure PaintPrewiew(Canvas: TCanvas; var PaintInfo: TPaintStruct; AChapter, APage: Integer; AFormatOrient: TFormatOrient);
+    procedure Print(Chapter, Page: Integer; IsFirst, IsLast: Boolean; AFormatOrient: TFormatOrient);
+    procedure PrintCurent;
+    procedure PrintAll;
+    procedure ExportWMF(FileName: TFileName; IsRewrite: Boolean);
+    procedure SaveToStream(S: TStream; const Ext, Description: String);
+    procedure Abort;
+    procedure DoPreviewRefresh;
+    function AddChapter: TLRptChapter;
+    procedure ChapterMoveUp(Chapter: TLRptChapter);
+    procedure ChapterMoveDown(Chapter: TLRptChapter);
+    procedure GlobalPageToChapterAndPage(GlobalPage: Integer; var Chapter, Page: Integer);
+    function ChapterAndPageToGlobalPage(Chapter, Page: Integer): Integer;
+    procedure SetChapterAndPage(Chapter, Page: Integer);
+    property RptComponents: TLRptComponents read FLRptComponents;
+    property RepaintLock: Boolean read FRepaintLock write FRepaintLock;
+    property ReadLock: Boolean read FReadLock write FReadLock;
+    property SelectedComponent: TLRptComponent read FSelectedComponent;
+    property Aborted: Boolean read FAbort;
+    property NZ: Byte read A;
+    property PagesCount: Integer read GlobalPagesCount;
+  published
+    { Published declarations }
+    property Align;
+    property Color;
+    property Font;
+    property Visible;
+    property DragKind;
+    property DragMode;
+    property Constraints;
+    property ParentColor;
+    property PopupMenu;
+    property TabStop;
+    property TabOrder;
+    property Status: TStatus read FStatus write SetStatus default stNormal;
+    property IsPaintFormat: Boolean read FPaintFormat write SetPaintFormat default True;
+    property FormatOrientation: TFormatOrient read FFormatOrient write SetFormatOrient;
+    property FormatSize: TFormatSize read FFormatSize write SetFormatSize default fsA4;
+    property FormatWidth: LongWord read FFormatWidth write SetFormatWidth default 2100;
+    property FormatHeight: LongWord read FFormatHeight write SetFormatHeight default 2970;
+    property ShadowWidth: TShadowWidth read FShadowWidth write SetShadowWidth default 50;
+    property Tracking: Boolean read FTracking write SetTracking default False;
+    property ZoomWarning: String read FZoomWarning write FZoomWarning;
+    property PrintDialog: TPrintDialog read FPrintDialog write FPrintDialog;
+    property ExportDialog: TSaveDialog read FExportDialog write FExportDialog;
+    property Chapters: TLRptChapters read FChapters;// write FChapters;// SetChapters;
+    property Frame: TLRptFrame read FLFrame write SetFrame;
+    property PageNr: TLRptPageNr read FLRptPageNr write SetPageNr;
+    property Chapter: Integer read FChapter write SetChapter default 1;
+    property Page: Integer read FPage write SetPage default 1;
+    property MoveGrid: Boolean read FMoveGrid write FMoveGrid default False;
+    property MoveGridStep: Word read FMoveGridStep write SetMoveGridStep default 40;
+    property SendItemMouseDown: Boolean read FSendItemMouseDown write FSendItemMouseDown;
+    property LicenceComponent: TLicenceComponent read FLicenceComponent write SetLicenceComponent;
+    property OnClick;
+    property OnDblClick;
+    property OnStartDrag;
+    property OnDragDrop;
+    property OnDragOver;
+    property OnEndDrag;
+    property OnEnter;
+    property OnExit;
+    property OnMouseDown;
+    property OnMouseMove;
+    property OnMouseUp;
+    property OnKeyDown;
+    property OnKeyUp;
+    property OnMouseEnter: TNotifyEvent read FMouseEnter write FMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FMouseLeave write FMouseLeave;
+    property OnResize: TNotifyEvent read FResize write FResize;
+    property OnExportPaint: TNotifyEvent read FOnExportPaint write FOnExportPaint;
+    property OnChangeItemChapter: TNotifyEvent read FChangeItemChapter write FChangeItemChapter;
+    property OnChangePagesCount: TNotifyEvent read FChangePagesCount write FChangePagesCount;
+    property OnRefreshPreview: TNotifyEvent read FOnRefreshPreview write FOnRefreshPreview;
+    property OnHScroll: TScrollEvent read FHScroll write FHScroll;
+    property OnVScroll: TScrollEvent read FVScroll write FVScroll;
+    property OnPaint: TPaintEvent read FPaint write FPaint;
+    property OnAddPaint: TPaintEvent read FAddPaint write FAddPaint;
+    property OnPostZoom: TZoomEvent read FPostZoom write FPostZoom;
+    property OnPosition: TPositionEvent read FPositionEvent write FPositionEvent;
+    property OnItemMouseDown: TItemMouseDown read FItemMouseDown write FItemMouseDown;
+    property OnItemMove: TItemMouseDown read FItemMove write FItemMove;
+    property OnInterval: TIntervalEvent read FIntervalXY write FIntervalXY;
+    property OnPostCreateComponent: TPostCreateComponent read FPostCreateComp write FPostCreateComp;
+    property OnSelectComponent: TSelectEvent read FSelectEvent write FSelectEvent;
+  end;
+
+const
+  FA: array[0..5] of TPoint = ((X:8410; Y:11890),
+                               (X:5940; Y:8410),
+                               (X:4200; Y:5940),
+                               (X:2970; Y:4200),
+                               (X:2100; Y:2970),
+                               (X:1480; Y:2100));
+
+  SelectLT = $0001;
+  SelectT  = $0002;
+  SelectRT = $0004;
+  SelectL  = $0008;
+  SelectR  = $0010;
+  SelectLB = $0020;
+  SelectB  = $0040;
+  SelectRB = $0080;
+  SelectG  = $0100;
+
+procedure DrawTextFont(DC: HDC; Str: String; ALogFont: TLogFont;
+                       var Rect: TRect; Format: Word);
+procedure DrawTextF(Canvas: TCanvas; Height: Integer; Str: String;
+                       var Rect: TRect; Format: Word);
+procedure DrawTextFW(Canvas: TCanvas; Height: Integer; Str: WideString;
+                       var Rect: TRect; Format: Word);
+function DrawTextFontW(DC: HDC; Str: PWChar; lfHeight: Integer; LogFont: TLogFont;
+                       var Rect: TRect; Format: Word): Integer;
