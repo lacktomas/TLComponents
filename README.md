@@ -3,7 +3,7 @@ TLComponents for Delphi
 
 TLicenceComponent 	- licence component
 
-TEquation 		      - component for converting a text mathematical equation into a numerical value
+TEquation 		      - component for converting a text mathematical equation into a numerical value, (mathematical expression to numerical value)
 
 TLMathMemo		      - component for writing a mathematical equation with brackets of different color according to their level
 
