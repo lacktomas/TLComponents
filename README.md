@@ -1,5 +1,5 @@
 # TLComponents
-TLComponents for Delphi
+TLComponents: Vcl components for Delphi
 
 TLicenceComponent 	- licence component
 
