@@ -1,5 +1,5 @@
 # TLComponents
-TLComponents: Vcl components for Delphi
+TLComponents: Vcl(Win32-bit and Win64-bit) and FMX(Win32-bit, Win64-bit and Android64-bit) components for Delphi
 
 TLicenceComponent 	- licence component
 
@@ -52,6 +52,8 @@ BPL files:
 
 TLComponents.bpl
 TLComponents64.bpl
+TLComponentsFMX.bpl
+TLComponentsFMX64.bpl
 
 The components are both for Delphi32 and Delphi64. 
 
