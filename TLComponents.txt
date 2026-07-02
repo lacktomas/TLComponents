@@ -35,6 +35,6 @@ The components are both for Delphi32 and Delphi64.
 
 A detailed description is in the file TLComponents.pdf. 
 
-LACK Solution, s.r.o.
+LACK Solutions, s.r.o.
 lacktomas@gmail.com
 
