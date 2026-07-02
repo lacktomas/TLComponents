@@ -1,0 +1,457 @@
+object AppEquationFrameFMX: TAppEquationFrameFMX
+  Size.Width = 584.000000000000000000
+  Size.Height = 187.000000000000000000
+  Size.PlatformDefault = False
+  object Panel1: TPanel
+    Align = Top
+    Locked = True
+    Size.Width = 584.000000000000000000
+    Size.Height = 46.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object SpeedButton2: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 2.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '+'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton3: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 24.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '-'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton4: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 46.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '*'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton5: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 68.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '/'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton6: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 178.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '('
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton7: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 200.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = ')'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton8: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 112.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '<'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton9: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 156.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '>'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton10: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 134.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '='
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton11: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 222.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '['
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton12: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 244.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = ','
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton13: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 266.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = ']'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton14: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 90.000000000000000000
+      Position.Y = 2.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '^'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton16: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 2.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '0'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton17: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 24.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '.'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton18: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 46.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '1'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton19: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 68.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '2'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton20: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 90.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '3'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton21: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 112.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '4'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton22: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 134.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '5'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton23: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 156.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '6'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton24: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 178.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '7'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton25: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 200.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '8'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton26: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 222.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '9'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton27: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 244.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'E'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+    object SpeedButton15: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 266.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'PI'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = SpeedButton10Click
+    end
+  end
+  object MathMemoFMX1: TMathMemoFMX
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    StyledSettings = [Style, FontColor]
+    TextSettings.Font.Family = 'Courier New'
+    TextSettings.Font.Size = 16.000000000000000000
+    OnChange = MathMemoFMX1Change
+    Align = Client
+    Size.Width = 554.000000000000000000
+    Size.Height = 141.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    OnEnter = MathMemoFMX1Enter
+    BracketsColors.Level0 = claBlack
+    BracketsColors.Level1 = claBlue
+    BracketsColors.Level2 = claYellow
+    BracketsColors.Level3 = claRed
+    BracketsColors.Level4 = claLime
+    BracketsColors.Level5 = claFuchsia
+    BracketsColors.Level6 = claAqua
+    Viewport.Width = 550.000000000000000000
+    Viewport.Height = 137.000000000000000000
+  end
+  object Panel3: TPanel
+    Align = Right
+    Locked = True
+    Position.X = 554.000000000000000000
+    Position.Y = 46.000000000000000000
+    Size.Width = 30.000000000000000000
+    Size.Height = 141.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    object BackBtn: TSpeedButton
+      StyledSettings = [Family, Size, FontColor]
+      Position.X = 4.000000000000000000
+      Position.Y = 4.000000000000000000
+      Size.Width = 20.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      Text = '<-'
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
+      OnClick = BackBtnClick
+    end
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 385
+    Top = 74
+    object SIN1: TMenuItem
+      Text = 'SIN'
+      OnClick = SIN1Click
+    end
+    object COS1: TMenuItem
+      Text = 'COS'
+      OnClick = SIN1Click
+    end
+    object TAN1: TMenuItem
+      Text = 'TAN'
+      OnClick = SIN1Click
+    end
+    object COTAN1: TMenuItem
+      Text = 'COTAN'
+      OnClick = SIN1Click
+    end
+    object ARCSIN1: TMenuItem
+      Text = 'ARCSIN'
+      OnClick = SIN1Click
+    end
+    object ARCCOS1: TMenuItem
+      Text = 'ARCCOS'
+      OnClick = SIN1Click
+    end
+    object ARCTAN1: TMenuItem
+      Text = 'ARCTAN'
+      OnClick = SIN1Click
+    end
+    object SINH1: TMenuItem
+      Text = 'SINH'
+      OnClick = SIN1Click
+    end
+    object COSH1: TMenuItem
+      Text = 'COSH'
+      OnClick = SIN1Click
+    end
+    object TANH1: TMenuItem
+      Text = 'TANH'
+      OnClick = SIN1Click
+    end
+    object ARCSINH1: TMenuItem
+      Text = 'ARCSINH'
+      OnClick = SIN1Click
+    end
+    object ARCCOSH1: TMenuItem
+      Text = 'ARCCOSH'
+      OnClick = SIN1Click
+    end
+    object ARCTANH1: TMenuItem
+      Text = 'ARCTANH'
+      OnClick = SIN1Click
+    end
+    object EXP1: TMenuItem
+      Text = 'EXP'
+      OnClick = SIN1Click
+    end
+    object LN1: TMenuItem
+      Text = 'LN'
+      OnClick = SIN1Click
+    end
+    object LOG1: TMenuItem
+      Text = 'LOG'
+      OnClick = SIN1Click
+    end
+    object ABS1: TMenuItem
+      Text = 'ABS'
+      OnClick = SIN1Click
+    end
+    object dT1: TMenuItem
+      Text = 'dT'
+      OnClick = SIN1Click
+    end
+    object ddT1: TMenuItem
+      Text = 'ddT'
+      OnClick = SIN1Click
+    end
+    object IntegralDT1: TMenuItem
+      Text = 'IntegralDT'
+      OnClick = SIN1Click
+    end
+  end
+  object FuncBtn: TBitSpeedButtonFMX
+    StyledSettings = [Family, Size, FontColor]
+    Position.X = 288.000000000000000000
+    Position.Y = 2.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'SIN('
+    TextSettings.Font.StyleExt = {00070000000000000004000000}
+    OnClick = FuncBtnClick
+    DropdownMenu = PopupMenu1
+  end
+  object CalcBtn: TBitButtonFMX
+    Anchors = [akTop, akRight]
+    Position.X = 474.000000000000000000
+    Position.Y = 12.000000000000000000
+    TabOrder = 3
+    Text = 'Calc'
+    OnClick = CalcBtnClick
+    Bitmap.PNG = {
+      89504E470D0A1A0A0000000D494844520000001200000012080600000056CE8E
+      570000000473424954080808087C0864880000007E49444154388DBD94511280
+      20084497A6837373FA7224636D2B27FE5478EC32AAB923B020B6151000D8D981
+      FB7D71CEA120000862DAECDAA8B4E6FE0C42412C18A40431353388ACC8AC3761
+      B0D3B0999ABCD7A0535095384264454CDD6F3392EE51445F4BD62A150DF4CA5A
+      B6A040286854A63C600A6AC50A045FBF911C07EE5A3535F18A9EF10000000049
+      454E44AE426082}
+    BitmapPosition.X = 6.000000000000000000
+    BitmapPosition.Y = 2.000000000000000000
+  end
+end

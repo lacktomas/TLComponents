@@ -1,0 +1,92 @@
+object GraphFrameFMX: TGraphFrameFMX
+  Size.Width = 675.000000000000000000
+  Size.Height = 418.000000000000000000
+  Size.PlatformDefault = False
+  TabOrder = 1
+  object Panel1: TPanel
+    Align = Top
+    Size.Width = 675.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object ZoomInBtn: TBitCornerButtonFMX
+      StaysPressed = True
+      Position.X = 12.000000000000000000
+      Position.Y = 8.000000000000000000
+      Sides = [Top, Left, Bottom, Right]
+      Size.Width = 79.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Zoom'
+      TextSettings.HorzAlign = Trailing
+      XRadius = 3.000000000000000000
+      YRadius = 3.000000000000000000
+      OnClick = ZoomInBtnClick
+      Bitmap.PNG = {
+        89504E470D0A1A0A0000000D494844520000001200000012080600000056CE8E
+        570000000473424954080808087C086488000000BD49444154388D9D92510EC3
+        200C430DDABDC2CDF0D1C8C9D8C7DA424898C62C210A98571348243AB622488E
+        110980A1F3B545F06E0CE77F02CD8052CAB2C6ABD93DC91F6D386AAD00005535
+        8ED69AF3669F264E32AB94E2EAE540B354D5A51191D01B82BEA5D929048D1A58
+        890854355C0F41248D59440CE4BEB959E6D648A0F78E94D2039C8FE921F4A015
+        B25304C1FD2023C81A7DC1B99904A0EF217B18D9AFFEB32F9338864432353A49
+        B22A0FC3F37594C4253A95ABD15FBF0FF406541A709F89459775000000004945
+        4E44AE426082}
+      BitmapPosition.Y = 4.000000000000000000
+    end
+    object ZoomOutBtn: TBitCornerButtonFMX
+      StaysPressed = True
+      Enabled = False
+      Position.X = 104.000000000000000000
+      Position.Y = 8.000000000000000000
+      Sides = [Top, Left, Bottom, Right]
+      Size.Width = 79.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'All'
+      TextSettings.HorzAlign = Trailing
+      XRadius = 3.000000000000000000
+      YRadius = 3.000000000000000000
+      OnClick = ZoomOutBtnClick
+      Bitmap.PNG = {
+        89504E470D0A1A0A0000000D494844520000001200000012080600000056CE8E
+        570000000473424954080808087C0864880000004949444154388D636C6860F8
+        CFC0C0C0D0D0C040124057CF84CCF9FFFF3F51186A146E83480708C328340801
+        460D1A3568D420BC800599C3C8C848B94190F285C4420909A0798D7C830029C4
+        250C4E7ED3250000000049454E44AE426082}
+      BitmapPosition.Y = 4.000000000000000000
+    end
+  end
+  object GraphControlFMX1: TGraphControlFMX
+    Size.Width = 675.000000000000000000
+    Size.Height = 377.000000000000000000
+    Size.PlatformDefault = False
+    Align = Client
+    TabOrder = 1
+    AutoScale = False
+    Parameters.MinX = -10.000000000000000000
+    Parameters.MaxX = 10.000000000000000000
+    Parameters.StepTicksX = 1.000000000000000000
+    Parameters.StepLabelsX = 5.000000000000000000
+    Parameters.Log10X = False
+    Parameters.MinY = -10.000000000000000000
+    Parameters.MaxY = 10.000000000000000000
+    Parameters.StepTicksY = 1.000000000000000000
+    Parameters.StepLabelsY = 5.000000000000000000
+    Parameters.Log10Y = False
+    Parameters.LoWarning = -9.000000000000000000
+    Parameters.HiWarning = 9.000000000000000000
+    Parameters.DigitsX = 0
+    Parameters.DigitsX2 = 0
+    Parameters.DigitsY = 0
+    Parameters.DigitsY2 = 0
+    Style = [gcTicks, gcScroll, gcGrid]
+    GridColor = claDarkgray
+    X2_Multiplikator = 1.000000000000000000
+    Y2_Multiplikator = 1.000000000000000000
+    Btn_Width = 20.000000000000000000
+    OnZoomChange = GraphControlFMX1ZoomChange
+  end
+end
