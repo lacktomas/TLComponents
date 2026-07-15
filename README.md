@@ -1,5 +1,5 @@
 # TLComponents
-TLComponents: Vcl(Win32-bit and Win64-bit) and FMX(Win32-bit, Win64-bit and Android64-bit) components for Delphi
+TLComponents: Vcl(Win32-bit and Win64-bit) and FMX(Win32-bit, Win64-bit and Android64-bit) components for Delphi + ArrayVisualizer
 
 TLicenceComponent 	- licence component
 
